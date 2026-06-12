@@ -5,11 +5,11 @@ class LecturesController < ApplicationController
   before_action :set_lecture, except: [:new, :create, :search]
   before_action :set_lecture_cookie, only: [:show, :organizational,
                                             :show_announcements]
-  authorize_resource except: [:new, :create, :search]
+  authorize_resource except: [:new, :create, :search, :search_content]
   before_action :check_for_consent
-  before_action :check_for_subscribe, only: [:show]
+  before_action :check_for_subscribe, only: [:show, :search_content]
   before_action :set_view_locale, only: [:edit, :show, :subscribe_page,
-                                         :show_random_quizzes]
+                                         :show_random_quizzes, :search_content]
   before_action :check_if_enough_questions, only: [:show_random_quizzes]
   layout "administration"
 
@@ -307,6 +307,24 @@ class LecturesController < ApplicationController
         redirect_to :root, alert: I18n.t("controllers.search_only_js")
       end
     end
+  end
+
+  def search_content
+    authorize! :show, @lecture
+    @query = params[:search]
+
+    if @query.present?
+      begin
+        search_client = SearchClient.new
+        @results = search_client.search_lessons(@query)
+        lesson_ids = @results.map { |r| r["lesson_rails_id"] }.uniq
+        @lessons_by_id = Lesson.where(id: lesson_ids).index_by(&:id)
+      rescue StandardError => e
+        @error = "Die Suche ist momentan nicht verfügbar. (#{e.message})"
+      end
+    end
+
+    render template: "lectures/search_content/search_content", layout: turbo_frame_request? ? "turbo_frame" : "application"
   end
 
   def show_random_quizzes

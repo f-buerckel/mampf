@@ -29,6 +29,15 @@ class MediaController < ApplicationController
   def index
     authorize! :index, Medium.new
 
+    # Fetch lessons from SearchClient for testing
+    begin
+      base_url = ENV["MAMPFSEARCH_BASE_URL"].presence || "http://host.docker.internal:8000"
+      search_client = SearchClient.new(base_url: base_url)
+      @test_lessons = search_client.list_lessons
+    rescue StandardError => e
+      @test_lessons_error = e.message
+    end
+
     @pagy, @media = Search::Searchers::ControllerSearcher.search(
       controller: self,
       model_class: Medium,
@@ -249,6 +258,34 @@ class MediaController < ApplicationController
       format.html do
         redirect_to :root, alert: I18n.t("controllers.search_only_js")
       end
+    end
+  end
+
+  def transcribe
+    if @medium.video.nil? || @medium.teachable_type != "Lesson"
+      redirect_back fallback_location: root_path, alert: "Medium cannot be transcribed."
+      return
+    end
+
+    begin
+      base_url = ENV["MAMPFSEARCH_BASE_URL"].presence || "http://host.docker.internal:8000"
+      search_client = SearchClient.new(base_url: base_url)
+
+      lesson = @medium.teachable
+      lecture = lesson.lecture
+      course = lecture.course
+
+      full_video_url = URI.join(request.base_url, @medium.video_url).to_s
+
+      search_client.transcribe_lesson(
+        lesson.id,
+        lecture.id,
+        course.id,
+        full_video_url
+      )
+      redirect_back fallback_location: root_path, notice: "Transcription started successfully."
+    rescue StandardError => e
+      redirect_back fallback_location: root_path, alert: "Transcription failed: #{e.message}"
     end
   end
 

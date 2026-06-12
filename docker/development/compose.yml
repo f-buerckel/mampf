@@ -32,6 +32,8 @@ services:
     labels:
       # see nginx.tmpl, which is serving mampf on port 30
       de.uni-heidelberg.mathi.mampf.container-type: worker
+    extra_hosts:
+    - "host.docker.internal:host-gateway"
 
   app-test:
     <<: *app-base

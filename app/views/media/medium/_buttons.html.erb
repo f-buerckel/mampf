@@ -6,6 +6,14 @@
       <i class="bi bi-play-fill fs-6"></i>
     </a>
   </div>
+
+  <% if can?(:transcribe, medium) && medium.teachable_type == "Lesson" %>
+    <div class="m-1">
+      <%= link_to "Transcribe", transcribe_medium_path(medium),
+                  class: "btn btn-outline-secondary", role: "button",
+                  data: { turbo_method: :post } %>
+    </div>
+  <% end %>
 <% end %>
 
 <% if medium.manuscript.present? %>

@@ -1,4 +1,30 @@
   <div class="row pb-2">
+    <div class="col-12 mb-3">
+      <% if @test_lessons_error %>
+        <div class="alert alert-danger">
+          <strong>Search Client Error:</strong> <%= @test_lessons_error %>
+        </div>
+      <% elsif @test_lessons %>
+        <div class="card">
+          <div class="card-header bg-info text-white">
+            <strong>Search Client Test: list_lessons</strong>
+          </div>
+          <div class="card-body">
+            <% if @test_lessons.is_a?(Array) && @test_lessons.any? %>
+              <ul class="list-group">
+                <% @test_lessons.each do |lesson| %>
+                  <li class="list-group-item">
+                    <%= lesson.inspect %>
+                  </li>
+                <% end %>
+              </ul>
+            <% else %>
+              <pre class="mb-0"><code><%= JSON.pretty_generate(@test_lessons) rescue @test_lessons %></code></pre>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
     <div class="col-sm-12 col-md-12 col-lg-6">
       <ul class="nav">
         <li class="nav-item pr-1">

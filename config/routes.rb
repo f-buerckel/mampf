@@ -240,6 +240,11 @@ Rails.application.routes.draw do
       to: "lectures#search",
       as: "search_lectures"
 
+  get "lectures/:id/search_content",
+      to: "lectures#search_content",
+      as: "lecture_search_content"
+
+
   get "lectures/:id/course",
       to: "lectures#display_course",
       as: "lecture_course"
@@ -434,6 +439,10 @@ Rails.application.routes.draw do
   post "media/:id/register_download",
        to: "media#register_download",
        as: "register_download"
+
+  post "media/:id/transcribe",
+       to: "media#transcribe",
+       as: "transcribe_medium"
 
   get "media/:id/statistics",
       to: "media#statistics",

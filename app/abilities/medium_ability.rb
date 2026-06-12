@@ -20,7 +20,7 @@ class MediumAbility
          :add_item, :add_reference, :add_screenshot, :remove_screenshot,
          :import_script_items, :import_manuscript, :statistics,
          :render_medium_tags, :fill_quizzable_area,
-         :fill_reassign_modal], Medium do |medium|
+         :fill_reassign_modal, :transcribe], Medium do |medium|
       user.can_edit?(medium)
     end
 
