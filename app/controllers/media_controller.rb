@@ -262,7 +262,7 @@ class MediaController < ApplicationController
   end
 
   def transcribe
-    if @medium.video.nil? || @medium.teachable_type != "Lesson"
+    if @medium.video.nil? || ( @medium.teachable_type == "Lesson" && @medium.teachable_type == "Lecture")
       redirect_back fallback_location: root_path, alert: "Medium cannot be transcribed."
       return
     end

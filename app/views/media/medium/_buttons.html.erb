@@ -7,7 +7,7 @@
     </a>
   </div>
 
-  <% if can?(:transcribe, medium) && medium.teachable_type == "Lesson" %>
+  <% if can?(:transcribe, medium) && (medium.teachable_type == "Lesson" || medium.teachable_type == "Lecture") && medium.video.present? %>
     <div class="m-1">
       <%= link_to "Transcribe", transcribe_medium_path(medium),
                   class: "btn btn-outline-secondary", role: "button",
