@@ -43,12 +43,15 @@ class SearchClient
 
   end
 
-  def search_lessons(query)
+  def search_lessons(query, whitelist_lecture_ids: nil, whitelist_lesson_ids: nil, exclude_lesson_ids: nil)
+    filters = {}
+    filters[:whitelist_lecture_ids] = Array(whitelist_lecture_ids) if whitelist_lecture_ids
+    filters[:whitelist_lesson_ids] = Array(whitelist_lesson_ids) if whitelist_lesson_ids
+    filters[:exclude_lesson_ids] = Array(exclude_lesson_ids) if exclude_lesson_ids
+
     payload = {
       query: query,
-      filters: {
-        additionalProp1: {}
-      }
+      filters: filters
     }
 
     perform_request do |client|

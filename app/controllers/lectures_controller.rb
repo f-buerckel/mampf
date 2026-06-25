@@ -316,7 +316,7 @@ class LecturesController < ApplicationController
     if @query.present?
       begin
         search_client = SearchClient.new
-        @results = search_client.search_lessons(@query)
+        @results = search_client.search_lessons(@query, whitelist_lecture_ids: [@lecture.id])
         lesson_ids = @results.map { |r| r["lesson_rails_id"] }.uniq
         @lessons_by_id = Lesson.includes(:media).where(id: lesson_ids).index_by(&:id)
       rescue StandardError => e
