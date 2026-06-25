@@ -1,3 +1,17 @@
+<style>
+  .search-result-item {
+    transition: border-left-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    border-left: 4px solid transparent !important;
+    text-decoration: none !important;
+  }
+  .search-result-item:hover {
+    transform: translateX(4px);
+    border-left-color: #2251dd !important;
+    background-color: #f8f9fa !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+</style>
+
 <div class="container d-flex flex-column align-items-center mt-5" style="min-height: 50vh;">
   <div class="w-100" style="max-width: 700px; margin-top: 10vh;">
     <h2 class="text-center mb-4">
@@ -33,20 +47,44 @@
           <div class="list-group shadow-sm">
             <% @results.each do |result| %>
               <% lesson = @lessons_by_id[result["lesson_rails_id"]] %>
-              <div class="list-group-item list-group-item-action flex-column align-items-start p-4">
+              <% video_medium = lesson&.media&.detect { |m| m.video.present? } %>
+              <% timestamp = TimeStamp.new(total_seconds: result["start_time"]) %>
+              <% play_link = video_medium ? play_medium_path(video_medium, time: result["start_time"]) : nil %>
+              
+              <% if play_link %>
+                <a href="<%= play_link %>" target="_blank" class="list-group-item list-group-item-action flex-column align-items-start p-4 search-result-item border-start-0 border-end-0 border-top-0 border-bottom">
+              <% else %>
+                <div class="list-group-item flex-column align-items-start p-4 border-start-0 border-end-0 border-top-0 border-bottom">
+              <% end %>
                 <div class="d-flex w-100 justify-content-between mb-2">
-                  <h5 class="mb-1 text-primary">
-                    <i class="bi bi-play-circle me-2"></i>
+                  <h5 class="mb-1 text-primary d-flex align-items-center">
+                    <i class="bi <%= play_link ? 'bi-play-circle-fill' : 'bi-chat-left-quote' %> me-2 fs-5 text-primary"></i>
                     <%= lesson ? lesson.title : "Unbekannte Lektion" %>
+                    <% if play_link %>
+                      <span class="badge bg-light text-primary border border-primary ms-3" style="font-size: 0.8rem;">
+                        <i class="bi bi-clock me-1"></i><%= timestamp.hms_colon_string %>
+                      </span>
+                    <% end %>
                   </h5>
                   <% if result["rrf_score"] %>
                     <small class="text-muted">Relevanz: <%= (result["rrf_score"] * 100).round(2) %>%</small>
                   <% end %>
                 </div>
-                <p class="mb-1 text-secondary" style="font-size: 0.95rem; line-height: 1.5;">
+                <p class="mb-2 text-secondary" style="font-size: 0.95rem; line-height: 1.5; font-style: italic;">
                   &bdquo;<%= result["text"] %>&ldquo;
                 </p>
-              </div>
+                <% if play_link %>
+                  <div class="mt-2 text-end">
+                    <span class="text-primary fw-semibold" style="font-size: 0.85rem;">
+                      Video abspielen ab <%= timestamp.hms_colon_string %> <i class="bi bi-arrow-right-short ms-1"></i>
+                    </span>
+                  </div>
+                <% end %>
+              <% if play_link %>
+                </a>
+              <% else %>
+                </div>
+              <% end %>
             <% end %>
           </div>
         <% end %>
