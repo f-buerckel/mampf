@@ -29,25 +29,26 @@ class SearchClient
     end
   end
   
-  def transcribe_lesson(lesson_rails_id, lecture_rails_id, course_rails_id, video_url)
+  def transcribe_lesson(media_rails_id:, lecture_rails_id:, course_rails_id:, video_url:, lesson_rails_id: nil)
     payload = {
-      lesson_rails_id: lesson_rails_id,
+      media_rails_id: media_rails_id,
       lecture_rails_id: lecture_rails_id,
       course_rails_id: course_rails_id,
       video_url: video_url
     }
-
+    
+    payload[:lesson_rails_id] = lesson_rails_id if lesson_rails_id.present?
     perform_request do |client|
-      client.post("/lesson/ingest", params: payload) # use params: as we only deal with primitive types.
+      client.post("/lesson/ingest", params: payload) 
     end
-
   end
 
-  def search_lessons(query, whitelist_lecture_ids: nil, whitelist_lesson_ids: nil, exclude_lesson_ids: nil)
+  def search_media(query, whitelist_lecture_ids: nil, whitelist_lesson_ids: nil, whitelist_media_ids: nil, exclude_media_ids: nil)
     filters = {}
     filters[:whitelist_lecture_ids] = Array(whitelist_lecture_ids) if whitelist_lecture_ids
     filters[:whitelist_lesson_ids] = Array(whitelist_lesson_ids) if whitelist_lesson_ids
-    filters[:exclude_lesson_ids] = Array(exclude_lesson_ids) if exclude_lesson_ids
+    filters[:whitelist_media_ids] = Array(whitelist_media_ids) if whitelist_media_ids
+    filters[:exclude_media_ids] = Array(exclude_media_ids) if exclude_media_ids
 
     payload = {
       query: query,

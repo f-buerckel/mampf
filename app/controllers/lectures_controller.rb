@@ -316,9 +316,9 @@ class LecturesController < ApplicationController
     if @query.present?
       begin
         search_client = SearchClient.new
-        @results = search_client.search_lessons(@query, whitelist_lecture_ids: [@lecture.id])
-        lesson_ids = @results.map { |r| r["lesson_rails_id"] }.uniq
-        @lessons_by_id = Lesson.includes(:media).where(id: lesson_ids).index_by(&:id)
+        @results = search_client.search_media(@query, whitelist_lecture_ids: [@lecture.id])
+        media_ids = @results.map { |r| r["media_rails_id"] }.compact.uniq
+        @media_by_id = Medium.where(id: media_ids).index_by(&:id)
       rescue StandardError => e
         @error = "Die Suche ist momentan nicht verfügbar. (#{e.message})"
       end

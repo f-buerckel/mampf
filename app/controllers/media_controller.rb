@@ -262,31 +262,36 @@ class MediaController < ApplicationController
   end
 
   def transcribe
-    if @medium.video.nil? || ( @medium.teachable_type == "Lesson" && @medium.teachable_type == "Lecture")
+
+    unless ["Lesson", "Lecture"].include?(@medium.teachable_type) && @medium.video.present?
       redirect_back fallback_location: root_path, alert: "Medium cannot be transcribed."
       return
     end
 
-    begin
-      base_url = ENV["MAMPFSEARCH_BASE_URL"].presence || "http://host.docker.internal:8000"
-      search_client = SearchClient.new(base_url: base_url)
+    base_url = ENV["MAMPFSEARCH_BASE_URL"].presence || "http://host.docker.internal:8000"
+    search_client = SearchClient.new(base_url: base_url)
 
+    if @medium.teachable_type == "Lesson"
       lesson = @medium.teachable
       lecture = lesson.lecture
-      course = lecture.course
 
-      full_video_url = URI.join(request.base_url, @medium.video_url).to_s
-
-      search_client.transcribe_lesson(
-        lesson.id,
-        lecture.id,
-        course.id,
-        full_video_url
-      )
-      redirect_back fallback_location: root_path, notice: "Transcription started successfully."
-    rescue StandardError => e
-      redirect_back fallback_location: root_path, alert: "Transcription failed: #{e.message}"
+    else
+      lesson = nil
+      lecture = @medium.teachable
     end
+    
+    course = lecture.course
+
+    full_video_url = URI.join(request.base_url, @medium.video_url).to_s
+
+    search_client.transcribe_lesson(
+      media_rails_id: @medium.id,
+      lesson_rails_id: lesson&.id,
+      lecture_rails_id: lecture.id,
+      course_rails_id: course.id,
+      video_url: full_video_url
+    )
+  
   end
 
   # play the video using thyme player
