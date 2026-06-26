@@ -1,7 +1,9 @@
 require "http"
 require "connection_pool"
+require "singleton"
 
 class SearchClient
+  include Singleton
   class MampfSearchError < StandardError; end
 
   class ServiceUnavailableError < MampfSearchError; end
@@ -11,7 +13,7 @@ class SearchClient
   class InvalidResponseError  < MampfSearchError; end
 
   
-  def initialize(base_url: ENV["MAMPFSEARCH_BASE_URL"].presence || "http://host.docker.internal:8000", pool_size: 5, timeout_seconds: 5)
+  def initialize(base_url: ENV["MAMPFSEARCH_BASE_URL"].presence, pool_size: 5, timeout_seconds: 5)
     raise ArgumentError, "base_url is required and cannot be empty" if base_url.to_s.strip.empty?
     @base_url = base_url
     @timeout = timeout_seconds

@@ -31,8 +31,7 @@ class MediaController < ApplicationController
 
     # Fetch lessons from SearchClient for testing
     begin
-      base_url = ENV["MAMPFSEARCH_BASE_URL"].presence || "http://host.docker.internal:8000"
-      search_client = SearchClient.new(base_url: base_url)
+      search_client = SearchClient.instance
       @test_lessons = search_client.list_lessons
     rescue StandardError => e
       @test_lessons_error = e.message
@@ -268,8 +267,7 @@ class MediaController < ApplicationController
       return
     end
 
-    base_url = ENV["MAMPFSEARCH_BASE_URL"].presence || "http://host.docker.internal:8000"
-    search_client = SearchClient.new(base_url: base_url)
+    search_client = SearchClient.instance
 
     if @medium.teachable_type == "Lesson"
       lesson = @medium.teachable
@@ -297,8 +295,7 @@ class MediaController < ApplicationController
   def search_content
     authorize! :search_content, @medium
 
-    base_url = ENV["MAMPFSEARCH_BASE_URL"].presence || "http://host.docker.internal:8000"
-    search_client = SearchClient.new(base_url: base_url)
+    search_client = SearchClient.instance
     
     query = params[:query]
     
