@@ -65,7 +65,9 @@
                       </span>
                     <% end %>
                   </h5>
-                  <% if result["rrf_score"] %>
+                  <% if result["rerank_score"] %>
+                    <small class="text-muted">Relevanz: <%= (result["rerank_score"] * 100).round(2) %>%</small>
+                  <% elsif result["rrf_score"] %>
                     <small class="text-muted">Relevanz: <%= (result["rrf_score"] * 100).round(2) %>%</small>
                   <% end %>
                 </div>
