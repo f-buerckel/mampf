@@ -400,6 +400,10 @@ Rails.application.routes.draw do
       to: "media#add_item",
       as: "add_item"
 
+  get "media/:id/search_content",
+      to: "media#search_content",
+      as: "media_search_content"
+
   get "media/:id/add_reference",
       to: "media#add_reference",
       as: "add_reference"

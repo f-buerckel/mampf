@@ -1,6 +1,6 @@
 # MediaController
 class MediaController < ApplicationController
-  skip_before_action :authenticate_user!, only: [:play, :display]
+  skip_before_action :authenticate_user!, only: [:play, :display, :search_content]
   before_action :set_medium, except: [:index, :new, :create, :search,
                                       :fill_teachable_select,
                                       :fill_media_select,
@@ -12,7 +12,7 @@ class MediaController < ApplicationController
                                       :cancel_import_vertex]
   before_action :set_lecture, only: [:index]
   before_action :set_teachable, only: [:new]
-  before_action :check_for_consent, except: [:play, :display]
+  before_action :check_for_consent, except: [:play, :display, :search_content]
   after_action :store_access, only: [:play, :display]
   after_action :store_download, only: [:register_download]
   authorize_resource except: [:index, :new, :create, :search,
@@ -292,6 +292,22 @@ class MediaController < ApplicationController
       video_url: full_video_url
     )
   
+  end
+
+  def search_content
+    authorize! :search_content, @medium
+
+    base_url = ENV["MAMPFSEARCH_BASE_URL"].presence || "http://host.docker.internal:8000"
+    search_client = SearchClient.new(base_url: base_url)
+    
+    query = params[:query]
+    
+    begin
+      results = search_client.search_media(query, whitelist_media_ids: [@medium.id])
+      render json: results
+    rescue SearchClient::MampfSearchError => e
+      render json: { error: e.message }, status: :unprocessable_entity
+    end
   end
 
   # play the video using thyme player

@@ -1,3 +1,11 @@
+// Configuration for the search popup shortcut to make it easy to change
+export const SEARCH_SHORTCUT = {
+  key: "s",
+  shiftKey: true,
+  ctrlKey: false,
+  metaKey: false
+};
+
 /**
  * Adds general shortcuts for the thyme player.
  */
@@ -102,6 +110,28 @@ export function addFeedbackShortcuts() {
     }
     else if (key === "d") {
       $("#annotation-next-button").trigger("click");
+    }
+  });
+}
+
+/**
+ * Adds shortcuts for the search popup component.
+ */
+export function addSearchShortcuts(searchPopup) {
+  window.addEventListener("keydown", function (evt) {
+    if (thymeAttributes.lockKeyListeners && !searchPopup.isVisible) {
+      return;
+    }
+    
+    // Check if the event matches the configured SEARCH_SHORTCUT
+    if (
+      evt.key.toLowerCase() === SEARCH_SHORTCUT.key.toLowerCase() &&
+      evt.shiftKey === SEARCH_SHORTCUT.shiftKey &&
+      evt.ctrlKey === SEARCH_SHORTCUT.ctrlKey &&
+      evt.metaKey === SEARCH_SHORTCUT.metaKey
+    ) {
+      evt.preventDefault(); // prevent any browser default
+      searchPopup.toggle();
     }
   });
 }

@@ -18,10 +18,11 @@ import { TimeButton } from "./components/time_button";
 import { VolumeBar } from "./components/volume_bar";
 import { ControlBarHider } from "./control_bar_hider";
 import { DisplayManager } from "./display_manager";
-import { addGeneralShortcuts, addPlayerShortcuts } from "./key_shortcuts";
+import { addGeneralShortcuts, addPlayerShortcuts, addSearchShortcuts } from "./key_shortcuts";
 import { MetadataManager } from "./metadata_manager";
 import { resizeThymeContainer } from "./resizer";
 import { onVideoMetadataLoaded, playOnClick, setUpMaxTime } from "./utility";
+import { SearchPopup } from "./components/search_popup";
 
 $(document).on("turbo:load", function () {
   /*
@@ -219,8 +220,12 @@ $(document).on("turbo:load", function () {
   /*
     KEYBOARD SHORTCUTS
    */
+  const searchPopup = new SearchPopup(thymeAttributes.mediumId, video);
+  thymeAttributes.searchPopup = searchPopup;
+
   addGeneralShortcuts();
   addPlayerShortcuts();
+  addSearchShortcuts(searchPopup);
 
   /*
     MISC
