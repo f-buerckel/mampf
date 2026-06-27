@@ -90,10 +90,9 @@
                  data-status="true">
                 add_to_queue
               </i>
-              <i id="subtitle-toggle" class="material-icons clickable ms-1"
+              <i id="subtitle-toggle" class="bi bi-badge-cc clickable ms-1"
                  data-status="false"
-                 style="<%= @medium.transcript.present? ? '' : 'display: none;' %>">
-                closed_caption
+                 style="font-size: 24px; line-height: 1; vertical-align: middle; <%= @medium.transcript.present? ? '' : 'display: none;' %>">
               </i>
               <i id="full-screen" class="material-icons clickable ms-1"
                  data-status="false">

@@ -19,26 +19,58 @@ export class SubtitleButton extends Component {
       return;
     }
 
+    // Use custom subtitle container
+    subtitleTrack.mode = "hidden";
+
     // Initialize state
-    if (subtitleTrack.mode === "showing") {
-      element.dataset.status = "true";
-      element.style.color = "var(--primary-color, #ffcd00)";
-    } else {
-      subtitleTrack.mode = "hidden";
-      element.dataset.status = "false";
-      element.style.color = "";
+    let subtitlesEnabled = false;
+    element.dataset.status = "false";
+    element.style.color = "";
+
+    let container = document.getElementById("custom-subtitle-container");
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "custom-subtitle-container";
+      container.className = "thyme-custom-subtitles";
+      container.setAttribute("aria-live", "polite");
+      container.setAttribute("aria-atomic", "true");
+      document.getElementById("hypervideo-container").appendChild(container);
     }
 
-    element.addEventListener("click", function () {
-      if (subtitleTrack.mode === "showing") {
-        subtitleTrack.mode = "hidden";
-        element.dataset.status = "false";
-        element.style.color = "";
-      } else {
-        subtitleTrack.mode = "showing";
-        element.dataset.status = "true";
-        element.style.color = "var(--primary-color, #ffcd00)";
+    const updateSubtitles = () => {
+      if (!subtitlesEnabled) {
+        container.innerHTML = "";
+        return;
       }
+      
+      if (subtitleTrack.activeCues && subtitleTrack.activeCues.length > 0) {
+        let text = "";
+        for (let i = 0; i < subtitleTrack.activeCues.length; i++) {
+          text += subtitleTrack.activeCues[i].text + "\n";
+        }
+        container.innerHTML = "<span>" + text.trim().replace(/\n/g, "<br>") + "</span>";
+      } else {
+        container.innerHTML = "";
+      }
+    };
+
+    subtitleTrack.addEventListener("cuechange", updateSubtitles);
+    video.addEventListener("timeupdate", updateSubtitles);
+
+    element.addEventListener("click", function () {
+      subtitlesEnabled = !subtitlesEnabled;
+      
+    if (subtitlesEnabled) {
+      element.classList.remove("bi-badge-cc");
+      element.classList.add("bi-badge-cc-fill");
+      element.style.color = "#282828ff";
+    } else {
+      element.classList.remove("bi-badge-cc-fill");
+      element.classList.add("bi-badge-cc");
+      element.style.color = ""; 
+    }
+      
+      updateSubtitles();
     });
   }
 }
