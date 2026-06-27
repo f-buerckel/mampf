@@ -100,6 +100,7 @@ class Medium < ApplicationRecord
   include ScreenshotUploader[:screenshot]
   include PdfUploader[:manuscript]
   include GeogebraUploader[:geogebra]
+  include TranscriptUploader[:transcript]
 
   # if an external reference is given, check if it is (at least syntactically)
   # a valid http(s) adress
@@ -377,6 +378,12 @@ class Medium < ApplicationRecord
     return screenshot_url(host: host) unless screenshot(:normalized)
 
     screenshot_url(:normalized, host: host)
+  end
+
+  def transcript_url_with_host
+    return if transcript.blank?
+
+    transcript.url(host: host)
   end
 
   def video_url

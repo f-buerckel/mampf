@@ -13,6 +13,12 @@
             <track kind="metadata"
                    src="<%= @vtt_container.references.url(host: host) %>"
                    srclang="de" default type="text/vtt" >
+          <% if @medium.transcript.present? %>
+            <track kind="subtitles"
+                   src="<%= @medium.transcript_url_with_host %>"
+                   srclang="<%= @medium.locale_with_inheritance %>"
+                   label="Transcript" default >
+          <% end %>
         </video>
         <div id="video-controlBar">
           <div id="video-controls">
@@ -83,6 +89,11 @@
               <i id="ia-active" class="material-icons clickable"
                  data-status="true">
                 add_to_queue
+              </i>
+              <i id="subtitle-toggle" class="material-icons clickable ms-1"
+                 data-status="false"
+                 style="<%= @medium.transcript.present? ? '' : 'display: none;' %>">
+                closed_caption
               </i>
               <i id="full-screen" class="material-icons clickable ms-1"
                  data-status="false">

@@ -368,6 +368,10 @@ Rails.application.routes.draw do
 
   # media routes
 
+  post "api/webhooks/media/:id/transcripts",
+       to: "media#add_transcript",
+       as: "add_transcript"
+
   get "media/search",
       to: "media#search",
       as: "search_media"

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_16_000000) do
+ActiveRecord::Schema[8.0].define(version: 2026_06_27_103449) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -482,6 +482,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_16_000000) do
     t.text "external_link_description"
     t.integer "annotations_status", default: -1, null: false
     t.integer "answers_count", default: 0, null: false
+    t.text "transcript_data"
     t.index ["answers_count"], name: "index_media_on_answers_count"
     t.index ["content"], name: "index_media_on_content_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["description"], name: "index_media_on_description_trgm", opclass: :gin_trgm_ops, using: :gin

@@ -1,6 +1,7 @@
 # MediaController
 class MediaController < ApplicationController
-  skip_before_action :authenticate_user!, only: [:play, :display, :search_content]
+  skip_before_action :verify_authenticity_token, only: [:add_transcript]
+  skip_before_action :authenticate_user!, only: [:play, :display, :search_content, :add_transcript]
   before_action :set_medium, except: [:index, :new, :create, :search,
                                       :fill_teachable_select,
                                       :fill_media_select,
@@ -12,14 +13,15 @@ class MediaController < ApplicationController
                                       :cancel_import_vertex]
   before_action :set_lecture, only: [:index]
   before_action :set_teachable, only: [:new]
-  before_action :check_for_consent, except: [:play, :display, :search_content]
+  before_action :check_for_consent, except: [:play, :display, :search_content, :add_transcript]
   after_action :store_access, only: [:play, :display]
   after_action :store_download, only: [:register_download]
   authorize_resource except: [:index, :new, :create, :search,
                               :fill_teachable_select, :fill_media_select,
                               :fill_medium_preview, :render_medium_actions,
                               :render_import_media, :render_import_vertex,
-                              :cancel_import_media, :cancel_import_vertex]
+                              :cancel_import_media, :cancel_import_vertex,
+                              :add_transcript]
   layout "administration"
 
   def current_ability
@@ -287,9 +289,23 @@ class MediaController < ApplicationController
       lesson_rails_id: lesson&.id,
       lecture_rails_id: lecture.id,
       course_rails_id: course.id,
-      video_url: full_video_url
+      video_url: full_video_url,
+      transcript_upload_url: add_transcript_url(@medium, host: request.base_url)
     )
   
+  end
+
+  def add_transcript
+    if params[:transcript].present?
+      @medium.transcript = params[:transcript]
+      if @medium.save
+        head :ok
+      else
+        render json: { errors: @medium.errors.full_messages }, status: :unprocessable_entity
+      end
+    else
+      head :bad_request
+    end
   end
 
   def search_content

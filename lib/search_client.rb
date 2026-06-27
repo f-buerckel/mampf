@@ -31,15 +31,17 @@ class SearchClient
     end
   end
   
-  def transcribe_lesson(media_rails_id:, lecture_rails_id:, course_rails_id:, video_url:, lesson_rails_id: nil)
+  def transcribe_lesson(media_rails_id:, lecture_rails_id:, course_rails_id:, video_url:, transcript_upload_url:, lesson_rails_id: nil)
     payload = {
       media_rails_id: media_rails_id,
       lecture_rails_id: lecture_rails_id,
       course_rails_id: course_rails_id,
-      video_url: video_url
+      video_url: video_url,
+      transcript_upload_url: transcript_upload_url
     }
     
     payload[:lesson_rails_id] = lesson_rails_id if lesson_rails_id.present?
+    
     perform_request do |client|
       client.post("/lesson/ingest", params: payload) 
     end
