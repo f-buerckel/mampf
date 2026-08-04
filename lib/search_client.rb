@@ -1,6 +1,7 @@
 require "http"
 require "connection_pool"
 require "singleton"
+require_relative "search_client/sentence_highlighter"
 
 class SearchClient
   include Singleton
@@ -62,6 +63,38 @@ class SearchClient
     perform_request do |client|
       client.post("/lesson/search", json: payload)
     end
+  end 
+
+  def score_sentences(query, chunk_ids)
+    perform_request do |client|
+      client.post("/lesson/score-sentences", params: { query: query }, json: chunk_ids)
+    end
+  end
+
+  def search_with_sentence_scoring(query, top_k: 4, **filters)
+    results = search_media(query, **filters)
+    return results if results.blank?
+
+    top_results = results.first(top_k)
+    chunk_ids = top_results.map { |r| r["chunk_id"] }
+    return results if chunk_ids.empty?
+
+    begin
+      scores = score_sentences(query, chunk_ids)
+      
+      top_results.each_with_index do |result, index|
+        next unless scores[index] && scores[index]["sentences"]
+        
+        sentences_data = scores[index]["sentences"]
+        formatted = SentenceHighlighter.format(sentences_data)
+        result["text"] = formatted
+      end
+    rescue MampfSearchError => e
+      Rails.logger.error "Sentence scoring failed: #{e.message}" if defined?(Rails)
+      # fallback to original text if scoring fails
+    end
+    
+    results
   end 
 
 

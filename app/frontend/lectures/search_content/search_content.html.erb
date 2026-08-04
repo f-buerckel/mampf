@@ -72,7 +72,7 @@
                   <% end %>
                 </div>
                 <p class="mb-2 text-secondary" style="font-size: 0.95rem; line-height: 1.5; font-style: italic;">
-                  &bdquo;<%= result["text"] %>&ldquo;
+                  &bdquo;<%= sanitize(result["text"], tags: %w[span], attributes: %w[style]) %>&ldquo;
                 </p>
                 <% if play_link %>
                   <div class="mt-2 text-end">

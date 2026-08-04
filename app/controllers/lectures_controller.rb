@@ -316,7 +316,7 @@ class LecturesController < ApplicationController
     if @query.present?
       begin
         search_client = SearchClient.instance
-        @results = search_client.search_media(@query, whitelist_lecture_ids: [@lecture.id])
+        @results = search_client.search_with_sentence_scoring(@query, whitelist_lecture_ids: [@lecture.id])
         media_ids = @results.map { |r| r["media_rails_id"] }.compact.uniq
         @media_by_id = Medium.where(id: media_ids).index_by(&:id)
       rescue StandardError => e

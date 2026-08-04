@@ -316,7 +316,7 @@ class MediaController < ApplicationController
     query = params[:query]
     
     begin
-      results = search_client.search_media(query, whitelist_media_ids: [@medium.id])
+      results = search_client.search_with_sentence_scoring(query, whitelist_media_ids: [@medium.id])
       render json: results
     rescue SearchClient::MampfSearchError => e
       render json: { error: e.message }, status: :unprocessable_entity

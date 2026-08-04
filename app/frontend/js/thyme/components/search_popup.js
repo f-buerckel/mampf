@@ -143,11 +143,18 @@ export class SearchPopup {
       
       const timeLabel = document.createElement("span");
       timeLabel.className = "thyme-search-result-time";
-      timeLabel.innerText = secondsToTime(time);
+      
+      let relevanceHtml = "";
+      const relevance = item.rerank_score || item.rrf_score;
+      if (relevance) {
+        relevanceHtml = `<small style="color: #6c757d; margin-left: 8px;">Relevanz: ${(relevance * 100).toFixed(2)}%</small>`;
+      }
+      
+      timeLabel.innerHTML = secondsToTime(time) + relevanceHtml;
       
       const textLabel = document.createElement("span");
       textLabel.className = "thyme-search-result-text";
-      textLabel.innerText = text;
+      textLabel.innerHTML = text;
 
       resultElement.appendChild(timeLabel);
       resultElement.appendChild(textLabel);
