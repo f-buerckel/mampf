@@ -32,9 +32,11 @@ services:
     labels:
       # see nginx.tmpl, which is serving mampf on port 30
       de.uni-heidelberg.mathi.mampf.container-type: worker
-    extra_hosts:
-    - "host.docker.internal:host-gateway"
-
+    networks:
+      default: {}
+      mampf_dev:
+        aliases:
+          - mampf
   app-test:
     <<: *app-base
     environment:
@@ -129,3 +131,7 @@ volumes:
   pgadmin:
   sprockets-cache:
   bundle_cache:
+
+networks:
+  mampf_dev:
+    external: true

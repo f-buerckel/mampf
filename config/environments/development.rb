@@ -3,8 +3,8 @@ require "active_support/core_ext/integer/time"
 Rails.application.configure do
   # Settings specified here will take precedence over those in config/application.rb.
   
-  # In development, the remote api communicates with local MaMpf using its host.docker.internal gateway which is routed to the local app using an ssh-tunnel. Therfore wel need to allow that host to make requests.
-  config.hosts << "host.docker.internal"
+  # MampfSearch reaches MaMpf through the shared Docker network.
+  config.hosts << "mampf"
 
   # Make code changes take effect immediately without server restart.
   config.enable_reloading = true
