@@ -416,6 +416,136 @@ RSpec.describe("Registration::Campaigns", type: :request) do
             expect(response.body).to include("Sticky Student")
           end
         end
+
+        context "when a student is still in the open rejected queue" do
+          let!(:campaign) do
+            create(:registration_campaign, :completed, campaignable: lecture)
+          end
+          let(:rejected_student) { create(:confirmed_user, name: "Rejected Student") }
+          let(:item) { campaign.registration_items.first }
+
+          before do
+            create(:registration_user_registration,
+                   :rejected,
+                   registration_campaign: campaign,
+                   registration_item: item,
+                   user: rejected_student,
+                   rejection_reason_label: "Needs prerequisite")
+          end
+
+          it "does not list rejected students in the unassigned panel" do
+            get unassigned_registration_campaign_path(campaign),
+                params: { source: "panel" }, as: :turbo_stream
+
+            expect(response).to have_http_status(:ok)
+            expect(response.body).not_to include("Rejected Student")
+          end
+        end
+
+        context "when a student was only left unassigned by the solver" do
+          let!(:campaign) do
+            create(:registration_campaign, :completed, campaignable: lecture)
+          end
+          let(:unassigned_student) { create(:confirmed_user, name: "Unassigned Student") }
+          let(:item) { campaign.registration_items.first }
+
+          before do
+            create(:registration_user_registration,
+                   :capacity_rejected,
+                   registration_campaign: campaign,
+                   registration_item: item,
+                   user: unassigned_student,
+                   rejection_reason_code: Registration::UserRegistration::REJECTION_REASON_CODE_SOLVER_UNASSIGNED,
+                   rejection_reason_label: I18n.t(
+                     "registration.user_registration.reason_labels.solver_unassigned"
+                   ))
+          end
+
+          it "still lists the student in the unassigned panel" do
+            get unassigned_registration_campaign_path(campaign),
+                params: { source: "panel" }, as: :turbo_stream
+
+            expect(response).to have_http_status(:ok)
+            expect(response.body).to include("Unassigned Student")
+          end
+        end
+      end
+    end
+  end
+
+  describe "GET /campaigns/:id/rejected" do
+    context "as an editor" do
+      before { sign_in editor }
+
+      context "without source=panel" do
+        it "redirects to the lecture groups tab" do
+          get rejected_registration_campaign_path(campaign)
+          expect(response).to redirect_to(edit_lecture_path(campaign.campaignable, tab: "groups"))
+        end
+      end
+
+      context "with source=panel" do
+        let!(:rejected_campaign) do
+          create(:registration_campaign, :completed, campaignable: lecture)
+        end
+        let(:item) { rejected_campaign.registration_items.first }
+        let(:rejected_student) { create(:confirmed_user, name: "Rejected Student") }
+
+        before do
+          create(:registration_user_registration,
+                 :rejected,
+                 registration_campaign: rejected_campaign,
+                 registration_item: item,
+                 user: rejected_student,
+                 rejection_reason_label: "Needs prerequisite")
+        end
+
+        it "renders the rejected roster side panel turbo stream" do
+          get rejected_registration_campaign_path(rejected_campaign),
+              params: { source: "panel" }, as: :turbo_stream
+
+          expect(response).to have_http_status(:ok)
+          assert_turbo_stream action: :replace, target: "tutorial-roster-side-panel"
+          expect(response.body).to include("Rejected Student")
+          expect(response.body).to include("Needs prerequisite")
+        end
+
+        it "hides overridden rejected students" do
+          rejected_campaign.user_registrations.find_by(user: rejected_student)
+                           .update!(rejection_overridden_at: Time.current)
+
+          get rejected_registration_campaign_path(rejected_campaign),
+              params: { source: "panel" }, as: :turbo_stream
+
+          expect(response).to have_http_status(:ok)
+          expect(response.body).not_to include("Rejected Student")
+        end
+
+        it "does not list solver-unassigned students" do
+          rejected_campaign.user_registrations.find_by(user: rejected_student)
+                           .update!(
+                             rejection_reason_code: Registration::UserRegistration::REJECTION_REASON_CODE_SOLVER_UNASSIGNED,
+                             rejection_reason_label: I18n.t(
+                               "registration.user_registration.reason_labels.solver_unassigned"
+                             )
+                           )
+
+          get rejected_registration_campaign_path(rejected_campaign),
+              params: { source: "panel" }, as: :turbo_stream
+
+          expect(response).to have_http_status(:ok)
+          expect(response.body).not_to include("Rejected Student")
+        end
+      end
+    end
+
+    context "as a student" do
+      before { sign_in student }
+
+      it "redirects to root (unauthorized)" do
+        get rejected_registration_campaign_path(campaign)
+
+        expect(response).to redirect_to(root_path)
       end
     end
   end
@@ -520,6 +650,78 @@ RSpec.describe("Registration::Campaigns", type: :request) do
 
       it "redirects to root (unauthorized)" do
         patch reopen_registration_campaign_path(campaign)
+        expect(response).to redirect_to(root_path)
+      end
+    end
+  end
+
+  describe "PATCH /campaigns/:id/self_service" do
+    let!(:campaign) do
+      create(:registration_campaign, :completed, :first_come_first_served,
+             campaignable: lecture, items_count: 2)
+    end
+
+    context "as an editor" do
+      before { sign_in editor }
+
+      it "opens self-service on all of the campaign's groups" do
+        patch self_service_registration_campaign_path(campaign),
+              params: { self_materialization_mode: "add_and_remove" }
+
+        modes = campaign.registerables.map(&:self_materialization_mode).uniq
+        expect(modes).to eq(["add_and_remove"])
+        expect(response).to redirect_to(registration_campaign_path(campaign))
+      end
+
+      it "responds with a turbo stream (the modal submission path)" do
+        patch self_service_registration_campaign_path(campaign),
+              params: { self_materialization_mode: "add_and_remove" },
+              as: :turbo_stream
+
+        expect(response).to have_http_status(:ok)
+        expect(response.media_type).to eq(Mime[:turbo_stream])
+        expect(campaign.registerables.map(&:self_materialization_mode).uniq)
+          .to eq(["add_and_remove"])
+      end
+
+      it "rejects an unknown mode with a flash error" do
+        patch self_service_registration_campaign_path(campaign),
+              params: { self_materialization_mode: "nonsense" }, as: :turbo_stream
+
+        assert_flash_error
+        expect(campaign.registerables.map(&:self_materialization_mode).uniq)
+          .to eq(["disabled"])
+      end
+
+      it "rejects a missing mode with a flash error" do
+        patch self_service_registration_campaign_path(campaign),
+              as: :turbo_stream
+
+        assert_flash_error
+        expect(campaign.registerables.map(&:self_materialization_mode).uniq)
+          .to eq(["disabled"])
+      end
+
+      it "refuses while the campaign is not completed" do
+        draft = create(:registration_campaign, :first_come_first_served,
+                       :with_items, campaignable: lecture, items_count: 2)
+
+        patch self_service_registration_campaign_path(draft),
+              params: { self_materialization_mode: "add_and_remove" },
+              as: :turbo_stream
+
+        assert_flash_error
+        expect(draft.registerables.map(&:self_materialization_mode).uniq)
+          .to eq(["disabled"])
+      end
+    end
+
+    context "as a student" do
+      before { sign_in student }
+
+      it "redirects to root (unauthorized)" do
+        patch self_service_registration_campaign_path(campaign),
+              params: { self_materialization_mode: "add_and_remove" }
         expect(response).to redirect_to(root_path)
       end
     end

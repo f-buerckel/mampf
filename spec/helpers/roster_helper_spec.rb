@@ -21,6 +21,28 @@ RSpec.describe(RosterHelper, type: :helper) do
     end
   end
 
+  describe "#show_muesli_transition_banner?" do
+    let(:term) { create(:term, :winter, year: 2026) }
+    let(:lecture) { instance_double("Lecture", term: term) }
+
+    after { Flipper.disable(:term_uses_mampf_registration) }
+
+    it "shows the banner while the term is not on MaMpf registration" do
+      expect(helper.show_muesli_transition_banner?(lecture)).to be(true)
+    end
+
+    it "hides the banner once the term is opted into MaMpf registration" do
+      Flipper.enable_actor(:term_uses_mampf_registration, term)
+
+      expect(helper.show_muesli_transition_banner?(lecture)).to be(false)
+    end
+
+    it "hides the banner when the lecture has no term (nothing to name)" do
+      expect(helper.show_muesli_transition_banner?(instance_double("Lecture", term: nil)))
+        .to be(false)
+    end
+  end
+
   describe "#roster_maintenance_frame_id" do
     it "handles single symbol" do
       expect(helper.roster_maintenance_frame_id(:tutorials)).to eq("roster_maintenance_tutorials")
@@ -77,6 +99,58 @@ RSpec.describe(RosterHelper, type: :helper) do
     it "disables turbo for full-page navigation" do
       badge = helper.roster_group_badge(tutorial, group_type)
       expect(badge).to include('data-turbo="false"')
+    end
+  end
+
+  describe "#rosterable_display_type" do
+    let(:lecture) { create(:lecture) }
+    let(:seminar) { create(:seminar) }
+    context "for Tutorial" do
+      let(:tutorial) { create(:tutorial, lecture: lecture) }
+
+      it "returns tutorial type label" do
+        expect(helper.rosterable_display_type(tutorial))
+          .to eq(I18n.t("registration.item.types.tutorial"))
+      end
+    end
+
+    context "for Talk" do
+      let(:talk) { create(:talk, lecture: seminar, position: 5) }
+
+      it "returns talk type label with position" do
+        expect(helper.rosterable_display_type(talk))
+          .to eq("#{I18n.t("registration.item.types.talk")} 5")
+      end
+    end
+
+    context "for Cohort" do
+      context "with propagation" do
+        let(:cohort) { create(:cohort, context: lecture, propagate_to_lecture: true) }
+
+        it "returns group label without icon" do
+          expect(helper.rosterable_display_type(cohort))
+            .to eq(I18n.t("registration.item.types.other_group"))
+        end
+      end
+
+      context "without propagation" do
+        let(:cohort) { create(:cohort, context: lecture, propagate_to_lecture: false) }
+
+        it "returns group label with no-propagation icon" do
+          result = helper.rosterable_display_type(cohort)
+          expect(result).to include(I18n.t("registration.item.types.other_group"))
+          expect(result).to include("bi-person-x")
+          expect(result).to include(I18n.t("registration.item.hints.no_propagation"))
+        end
+      end
+    end
+
+    context "for unknown type" do
+      let(:something) { double("UnknownType") }
+
+      it "returns nil safely" do
+        expect(helper.rosterable_display_type(something)).to be_nil
+      end
     end
   end
 end

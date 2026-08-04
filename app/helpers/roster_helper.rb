@@ -67,21 +67,21 @@ module RosterHelper
     end
   end
 
-  private
-
-    def roster_group_type_param(registerable)
-      gt = registerable.roster_group_type
-      gt == :talks ? {} : { group_type: gt }
-    end
-
-  public
-
   def roster_group_types(lecture)
     if lecture.seminar?
       [:talks, :cohorts]
     else
       [:tutorials, :cohorts]
     end
+  end
+
+  # The Müsli-transition banner explains why roster counts read 0 for the
+  # lecture's term while its registration did not run through MaMpf. Terms
+  # opted into MaMpf registration have real counts, so it is hidden for them;
+  # so is a term-less lecture, whose banner would have no term to name.
+  def show_muesli_transition_banner?(lecture)
+    term = lecture.term
+    term.present? && !Flipper.enabled?(:term_uses_mampf_registration, term)
   end
 
   def roster_maintenance_frame_id(group_type)
@@ -112,4 +112,33 @@ module RosterHelper
             style: "cursor: pointer;",
             data: { turbo: false })
   end
+
+  def rosterable_display_type(rosterable)
+    case rosterable.class.name
+    when "Tutorial"
+      t("registration.item.types.tutorial")
+    when "Talk"
+      "#{t("registration.item.types.talk")} #{rosterable.position}"
+    when "Cohort"
+      cohort = rosterable
+      base_type = t("registration.item.types.other_group")
+
+      if cohort.propagate_to_lecture
+        base_type
+      else
+        icon = tag.i(class: "bi bi-person-x ms-1",
+                     style: "color: #495057;",
+                     data: { bs_toggle: "tooltip",
+                             bs_title: t("registration.item.hints.no_propagation") })
+        safe_join([base_type, " ", icon])
+      end
+    end
+  end
+
+  private
+
+    def roster_group_type_param(registerable)
+      gt = registerable.roster_group_type
+      gt == :talks ? {} : { group_type: gt }
+    end
 end

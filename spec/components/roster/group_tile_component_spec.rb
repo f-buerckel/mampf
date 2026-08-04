@@ -16,6 +16,23 @@ RSpec.describe(GroupTileComponent, type: :component) do
     end
   end
 
+  describe "rendering" do
+    it "adds tooltip attributes to student tiles" do
+      rendered = render_inline(
+        described_class.new(
+          registerable: tutorial,
+          student_tile: true,
+          tile_tooltip_text: "Blocked tooltip"
+        )
+      )
+      tile = rendered.css(".tutorial-gtile--student").first
+
+      expect(tile["title"]).to eq("Blocked tooltip")
+      expect(tile["data-bs-toggle"]).to eq("tooltip")
+      expect(tile["tabindex"]).to eq("0")
+    end
+  end
+
   describe "#dom_target" do
     it "returns registerable when no item" do
       expect(component.dom_target).to eq(tutorial)
@@ -75,6 +92,76 @@ RSpec.describe(GroupTileComponent, type: :component) do
       allow(reg).to receive(:try).with(:location).and_return(nil)
       c = described_class.new(registerable: reg)
       expect(c.location_text).to be_nil
+    end
+  end
+
+  describe "#date_text" do
+    it "is nil for rosterables without dates (e.g. tutorials)" do
+      expect(component.date_text).to be_nil
+    end
+
+    context "with a talk that has dates" do
+      let(:talk) do
+        build_stubbed(:talk, dates: [Time.zone.local(2026, 4, 10),
+                                     Time.zone.local(2026, 4, 11)])
+      end
+      let(:component) { described_class.new(registerable: talk) }
+
+      it "joins the formatted dates" do
+        expect(component.date_text).to eq("Apr 10 2026, Apr 11 2026")
+      end
+    end
+
+    context "with a talk that has no dates" do
+      let(:talk) { build_stubbed(:talk, dates: []) }
+      let(:component) { described_class.new(registerable: talk) }
+
+      it "is nil" do
+        expect(component.date_text).to be_nil
+      end
+    end
+  end
+
+  describe "teacher tile date line" do
+    let(:lecture) { create(:seminar) }
+    let(:talk) do
+      create(:talk, lecture: lecture, dates: [Time.zone.local(2026, 4, 10)])
+    end
+    let(:item) { create(:registration_item, registerable: talk) }
+
+    it "shows the talk date on the non-student tile" do
+      rendered = render_inline(described_class.new(registerable: talk, item: item))
+      date_line = rendered.css(".bi-calendar-event").first
+
+      expect(date_line).to be_present
+      expect(rendered.to_html).to include("Apr 10 2026")
+    end
+
+    it "labels the date for screen readers and hides the icon from them" do
+      rendered = render_inline(described_class.new(registerable: talk, item: item))
+
+      expect(rendered.css(".bi-calendar-event").first["aria-hidden"]).to eq("true")
+      expect(rendered.css(".visually-hidden").map(&:text))
+        .to include("#{I18n.t("basics.date")}:")
+    end
+  end
+
+  describe "student tile metadata rows" do
+    let(:tutorial) { build_stubbed(:tutorial, location: "INF 205") }
+    let(:rows) do
+      [{ label: "Date", value: "Jul 11 2026", icon: "bi-calendar-event" }]
+    end
+
+    it "labels the value for screen readers and hides the icon from them" do
+      rendered = render_inline(
+        described_class.new(registerable: tutorial, student_tile: true,
+                            tile_metadata_rows: rows)
+      )
+      row = rendered.css(".student-registration-tile-meta > div").first
+
+      expect(row.css("i").first["aria-hidden"]).to eq("true")
+      expect(row.css(".visually-hidden").text).to eq("Date:")
+      expect(row["title"]).to eq("Date")
     end
   end
 
@@ -146,6 +233,43 @@ RSpec.describe(GroupTileComponent, type: :component) do
 
     it "returns free class by default" do
       expect(component.top_bar_class).to eq("tutorial-gtile-top-bar--free")
+    end
+  end
+
+  describe "top-bar tooltip" do
+    def bar_title(instance)
+      render_inline(instance).css("[data-testid='group-tile-top-bar']").first["title"]
+    end
+
+    context "with an item" do
+      let(:lecture) { create(:lecture) }
+      let(:campaign) do
+        create(:registration_campaign, :first_come_first_served, :with_items,
+               campaignable: lecture, items_count: 1)
+      end
+      let(:campaign_item) { campaign.registration_items.first }
+
+      it "describes the registration process" do
+        instance = described_class.new(registerable: campaign_item.registerable,
+                                       item: campaign_item)
+        expect(bar_title(instance))
+          .to eq(I18n.t("roster.tooltips.top_bar_campaign"))
+      end
+    end
+
+    context "with self-enrollment active" do
+      before { tutorial.self_materialization_mode = "add_only" }
+
+      it "mirrors the self-enrollment icon tooltip" do
+        title = bar_title(described_class.new(registerable: tutorial))
+        expect(title).to include(I18n.t("roster.self_materialization.label"))
+        expect(title).to include(I18n.t("roster.self_materialization.modes.add_only"))
+      end
+    end
+
+    it "reports self-enrollment disabled by default" do
+      title = bar_title(described_class.new(registerable: tutorial))
+      expect(title).to include(I18n.t("roster.self_materialization.modes.disabled"))
     end
   end
 

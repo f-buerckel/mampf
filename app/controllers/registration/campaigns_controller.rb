@@ -40,15 +40,21 @@ module Registration
         return
       end
 
-      unassigned_users = @campaign.unassigned_users(preload_registrations: true)
+      render_campaign_panel(
+        students: @campaign.unassigned_users(preload_registrations: true),
+        panel_kind: :unassigned
+      )
+    end
 
-      render turbo_stream: turbo_stream.replace(
-        "tutorial-roster-side-panel",
-        html: RosterSidePanelComponent.new(
-          campaign: @campaign,
-          students: unassigned_users,
-          is_unassigned: true
-        ).render_in(view_context)
+    def rejected
+      unless params[:source] == "panel"
+        redirect_to edit_lecture_path(@campaign.campaignable, tab: "groups")
+        return
+      end
+
+      render_campaign_panel(
+        students: @campaign.rejected_users(preload_registrations: true),
+        panel_kind: :rejected
       )
     end
 
@@ -169,6 +175,29 @@ module Registration
                          redirect_path: registration_campaign_path(@campaign))
     end
 
+    # Opens (or closes) student self-service on all of the campaign's groups
+    # once it is completed, so students are not silently locked into their
+    # allocated group.
+    def self_service
+      unless @campaign.completed?
+        return respond_with_flash(
+          :alert, t("registration.campaign.self_service.only_when_completed"),
+          redirect_path: registration_campaign_path(@campaign)
+        )
+      end
+
+      @campaign.apply_self_materialization_mode!(params[:self_materialization_mode])
+
+      respond_with_flash(:notice, t("registration.campaign.self_service.updated"),
+                         redirect_path: registration_campaign_path(@campaign)) do
+        evaluate_turbo_update_streams(lecture: @campaign.campaignable,
+                                      expanded_campaign_id: @campaign.id)
+      end
+    rescue ArgumentError, ActiveRecord::RecordInvalid
+      respond_with_flash(:alert, t("registration.campaign.self_service.failed"),
+                         redirect_path: registration_campaign_path(@campaign))
+    end
+
     private
 
       def set_lecture
@@ -197,6 +226,17 @@ module Registration
         params.expect(
           registration_campaign: [:description, :allocation_mode,
                                   :registration_deadline]
+        )
+      end
+
+      def render_campaign_panel(students:, panel_kind: nil)
+        render turbo_stream: turbo_stream.replace(
+          "tutorial-roster-side-panel",
+          html: RosterSidePanelComponent.new(
+            campaign: @campaign,
+            students: students,
+            panel_kind: panel_kind
+          ).render_in(view_context)
         )
       end
 
