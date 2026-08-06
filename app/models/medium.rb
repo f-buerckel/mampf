@@ -383,7 +383,13 @@ class Medium < ApplicationRecord
   def video_url
     return if video.blank?
 
-    video.url(host: host)
+    Rails.application.routes.url_helpers.stream_video_medium_path(id)
+  end
+
+  def transcript_url_with_host
+    return if transcript.blank?
+
+    Rails.application.routes.url_helpers.stream_transcript_medium_path(id)
   end
 
   def video_screenshot_file

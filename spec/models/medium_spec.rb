@@ -111,6 +111,27 @@ RSpec.describe(Medium, type: :model) do
       medium = FactoryBot.build(:medium, :with_video)
       expect(medium.video).to be_kind_of(VideoUploader::UploadedFile)
     end
+
+    it "returns the Rails stream path" do
+      medium = FactoryBot.create(:lecture_medium, :with_video)
+
+      expect(medium.video_url).to eq(
+        Rails.application.routes.url_helpers.stream_video_medium_path(medium)
+      )
+    end
+
+    it "returns the Rails transcript stream path" do
+      medium = FactoryBot.create(:lecture_medium)
+      allow(medium).to receive(:transcript).and_return(instance_double(
+        TranscriptUploader::UploadedFile,
+        blank?: false
+      ))
+
+      expect(medium.transcript_url_with_host)
+        .to eq(
+          Rails.application.routes.url_helpers.stream_transcript_medium_path(medium)
+        )
+    end
   end
 
   describe "lesson medium" do

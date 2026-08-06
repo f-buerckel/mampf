@@ -5,6 +5,7 @@ class MediaController < ApplicationController
                                                  :chapters_vtt,
                                                  :references_vtt, :display,
                                                  :stream_video,
+                                                 :stream_transcript,
                                                  :inline_manuscript,
                                                  :geogebra, :inline_geogebra,
                                                  :download, :search_content,
@@ -24,6 +25,7 @@ class MediaController < ApplicationController
                                              :chapters_vtt,
                                              :references_vtt, :display,
                                              :stream_video,
+                                             :stream_transcript,
                                              :inline_manuscript,
                                              :geogebra, :inline_geogebra,
                                              :download, :search_content,
@@ -384,6 +386,16 @@ class MediaController < ApplicationController
     end
 
     send_stored_file(@medium.video, disposition: "inline", fallback: "video")
+    prevent_caching unless @medium.free?
+  end
+
+  def stream_transcript
+    if @medium.transcript.nil?
+      head :not_found
+      return
+    end
+
+    send_stored_file(@medium.transcript, disposition: "inline", fallback: "transcript")
     prevent_caching unless @medium.free?
   end
 

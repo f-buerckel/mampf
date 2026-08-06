@@ -37,7 +37,8 @@ class MediumAbility
     end
 
     # guest users can play/display media when their release status 'all'
-    can [:play, :screenshot, :chapters_vtt, :references_vtt, :stream_video, :display,
+    can [:play, :screenshot, :chapters_vtt, :references_vtt, :stream_video,
+         :stream_transcript, :display,
          :inline_manuscript, :geogebra, :inline_geogebra,
          :download, :search_content], Medium do |medium|
       (!user.new_record? && medium.visible_for_user?(user)) ||

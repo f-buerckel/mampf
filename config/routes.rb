@@ -432,6 +432,10 @@ Rails.application.routes.draw do
       to: "media#stream_video",
       as: "stream_video_medium"
 
+  get "media/:id/transcript/stream",
+      to: "media#stream_transcript",
+      as: "stream_transcript_medium"
+
   get "media/:id/display",
       to: "media#display",
       as: "display_medium"
