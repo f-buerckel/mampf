@@ -278,9 +278,8 @@ class MediaController < ApplicationController
   end
 
   def transcribe
-
     unless ["Lesson", "Lecture"].include?(@medium.teachable_type) && @medium.video.present?
-      redirect_back fallback_location: root_path, alert: "Medium cannot be transcribed."
+      redirect_back_or_to(root_path, alert: "Medium cannot be transcribed.")
       return
     end
 
@@ -294,7 +293,7 @@ class MediaController < ApplicationController
       lesson = nil
       lecture = @medium.teachable
     end
-    
+
     course = lecture.course
 
     full_video_url = URI.join(request.base_url, @medium.video_url).to_s
@@ -307,7 +306,6 @@ class MediaController < ApplicationController
       video_url: full_video_url,
       transcript_upload_url: add_transcript_url(@medium, host: request.base_url)
     )
-  
   end
 
   def add_transcript
@@ -316,7 +314,7 @@ class MediaController < ApplicationController
       if @medium.save
         head :ok
       else
-        render json: { errors: @medium.errors.full_messages }, status: :unprocessable_entity
+        render json: { errors: @medium.errors.full_messages }, status: :unprocessable_content
       end
     else
       head :bad_request
@@ -327,14 +325,14 @@ class MediaController < ApplicationController
     authorize! :search_content, @medium
 
     search_client = SearchClient.instance
-    
+
     query = params[:query]
-    
+
     begin
       results = search_client.search_with_sentence_scoring(query, whitelist_media_ids: [@medium.id])
       render json: results
     rescue SearchClient::MampfSearchError => e
-      render json: { error: e.message }, status: :unprocessable_entity
+      render json: { error: e.message }, status: :unprocessable_content
     end
   end
 
