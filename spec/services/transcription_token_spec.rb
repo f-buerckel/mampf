@@ -22,9 +22,9 @@ RSpec.describe(TranscriptionToken) do
         ttl: 5.minutes
       )
 
-      expect {
+      expect do
         described_class.verify!(token, purpose: :transcript)
-      }.to raise_error(described_class::InvalidTokenError)
+      end.to raise_error(described_class::InvalidTokenError)
     end
 
     it "rejects an expired token" do
@@ -34,9 +34,9 @@ RSpec.describe(TranscriptionToken) do
         ttl: -1.second
       )
 
-      expect {
+      expect do
         described_class.verify!(token, purpose: :video)
-      }.to raise_error(described_class::InvalidTokenError)
+      end.to raise_error(described_class::InvalidTokenError)
     end
 
     it "rejects a tampered token" do
@@ -48,9 +48,9 @@ RSpec.describe(TranscriptionToken) do
       payload, signature = token.split(".", 2)
       tampered_token = "#{payload}.#{signature.reverse}"
 
-      expect {
+      expect do
         described_class.verify!(tampered_token, purpose: :video)
-      }.to raise_error(described_class::InvalidTokenError)
+      end.to raise_error(described_class::InvalidTokenError)
     end
   end
 end

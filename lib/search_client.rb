@@ -5,17 +5,18 @@ require_relative "search_client/sentence_highlighter"
 
 class SearchClient
   include Singleton
+
   class MampfSearchError < StandardError; end
 
   class ServiceUnavailableError < MampfSearchError; end
   class TimeoutError < MampfSearchError; end
 
   class InvalidQueryError < MampfSearchError; end
-  class InvalidResponseError  < MampfSearchError; end
+  class InvalidResponseError < MampfSearchError; end
 
-  
   def initialize(base_url: ENV["MAMPFSEARCH_BASE_URL"].presence, pool_size: 5, timeout_seconds: 5)
-    raise ArgumentError, "base_url is required and cannot be empty" if base_url.to_s.strip.empty?
+    raise(ArgumentError, "base_url is required and cannot be empty") if base_url.to_s.strip.empty?
+
     @base_url = base_url
     @timeout = timeout_seconds
 
@@ -26,13 +27,14 @@ class SearchClient
     end
   end
 
-  def list_lessons()
+  def list_lessons
     perform_request do |client|
       client.post("/lesson/list")
     end
   end
-  
-  def transcribe_lesson(media_rails_id:, lecture_rails_id:, course_rails_id:, video_url:, transcript_upload_url:, lesson_rails_id: nil)
+
+  def transcribe_lesson(media_rails_id:, lecture_rails_id:, course_rails_id:, video_url:,
+                        transcript_upload_url:, lesson_rails_id: nil)
     payload = {
       media_rails_id: media_rails_id,
       lecture_rails_id: lecture_rails_id,
@@ -40,15 +42,16 @@ class SearchClient
       video_url: video_url,
       transcript_upload_url: transcript_upload_url
     }
-    
+
     payload[:lesson_rails_id] = lesson_rails_id if lesson_rails_id.present?
-    
+
     perform_request do |client|
-      client.post("/lesson/ingest", params: payload) 
+      client.post("/lesson/ingest", params: payload)
     end
   end
 
-  def search_media(query, whitelist_lecture_ids: nil, whitelist_lesson_ids: nil, whitelist_media_ids: nil, exclude_media_ids: nil)
+  def search_media(query, whitelist_lecture_ids: nil, whitelist_lesson_ids: nil,
+                   whitelist_media_ids: nil, exclude_media_ids: nil)
     filters = {}
     filters[:whitelist_lecture_ids] = Array(whitelist_lecture_ids) if whitelist_lecture_ids
     filters[:whitelist_lesson_ids] = Array(whitelist_lesson_ids) if whitelist_lesson_ids
@@ -63,7 +66,7 @@ class SearchClient
     perform_request do |client|
       client.post("/lesson/search", json: payload)
     end
-  end 
+  end
 
   def score_sentences(query, chunk_ids)
     perform_request do |client|
@@ -76,49 +79,48 @@ class SearchClient
     return results if results.blank?
 
     top_results = results.first(top_k)
-    chunk_ids = top_results.map { |r| r["chunk_id"] }
+    chunk_ids = top_results.pluck("chunk_id")
     return results if chunk_ids.empty?
 
     begin
       scores = score_sentences(query, chunk_ids)
-      
+
       top_results.each_with_index do |result, index|
         next unless scores[index] && scores[index]["sentences"]
-        
+
         sentences_data = scores[index]["sentences"]
         formatted = SentenceHighlighter.format(sentences_data)
         result["text"] = formatted
       end
     rescue MampfSearchError => e
-      Rails.logger.error "Sentence scoring failed: #{e.message}" if defined?(Rails)
+      Rails.logger.error("Sentence scoring failed: #{e.message}") if defined?(Rails)
       # fallback to original text if scoring fails
     end
-    
-    results
-  end 
 
+    results
+  end
 
   private
 
-  def perform_request
-    response = @pool.with { |client| yield client }
-    handle_response(response)
-  rescue HTTP::TimeoutError
-    raise TimeoutError, "The search took too long to complete."
-  rescue HTTP::Error, Errno::ECONNREFUSED => e
-    raise ServiceUnavailableError, "The search service is currently offline: #{e.message}"
-  end
-
-  def handle_response(response)
-    case response.status.code
-    when 200..299
-      JSON.parse(response.body.to_s)
-    when 400..422
-      raise InvalidQueryError, "Invalid search parameters: #{response.body}"
-    when 500..599
-      raise InvalidResponseError, "The search engine encountered an internal error."
-    else
-      raise MampfSearchError, "Unexpected search failure: #{response.status.code}"
+    def perform_request(&)
+      response = @pool.with(&)
+      handle_response(response)
+    rescue HTTP::TimeoutError
+      raise(TimeoutError, "The search took too long to complete.")
+    rescue HTTP::Error, Errno::ECONNREFUSED => e
+      raise(ServiceUnavailableError, "The search service is currently offline: #{e.message}")
     end
-  end
+
+    def handle_response(response)
+      case response.status.code
+      when 200..299
+        JSON.parse(response.body.to_s)
+      when 400..422
+        raise(InvalidQueryError, "Invalid search parameters: #{response.body}")
+      when 500..599
+        raise(InvalidResponseError, "The search engine encountered an internal error.")
+      else
+        raise(MampfSearchError, "Unexpected search failure: #{response.status.code}")
+      end
+    end
 end

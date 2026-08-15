@@ -318,15 +318,17 @@ class LecturesController < ApplicationController
     if @query.present?
       begin
         search_client = SearchClient.instance
-        @results = search_client.search_with_sentence_scoring(@query, whitelist_lecture_ids: [@lecture.id])
-        media_ids = @results.map { |r| r["media_rails_id"] }.compact.uniq
+        @results = search_client.search_with_sentence_scoring(@query,
+                                                              whitelist_lecture_ids: [@lecture.id])
+        media_ids = @results.filter_map { |r| r["media_rails_id"] }.uniq
         @media_by_id = Medium.where(id: media_ids).index_by(&:id)
       rescue StandardError => e
         @error = "Die Suche ist momentan nicht verfügbar. (#{e.message})"
       end
     end
 
-    render template: "lectures/search_content/search_content", layout: turbo_frame_request? ? "turbo_frame" : "application"
+    render template: "lectures/search_content/search_content",
+           layout: turbo_frame_request? ? "turbo_frame" : "application"
   end
 
   def show_random_quizzes

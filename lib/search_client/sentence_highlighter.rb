@@ -1,4 +1,4 @@
-require 'erb'
+require "erb"
 
 class SearchClient
   module SentenceHighlighter
@@ -11,16 +11,16 @@ class SearchClient
         text = s["sentence"]
 
         if score < 0.2
-          if !was_cut
+          unless was_cut
             formatted_parts << "[...]"
             was_cut = true
           end
         else
           was_cut = false
-          
+
           # Clamp score between 0.2 and 1.0
           clamped_score = [[score, 0.2].max, 1.0].min
-          
+
           # Calculate hue: 60 (yellow) at score 0.2, 0 (red) at score 1.0
           normalized = (clamped_score - 0.2) / 0.8
           hue = (60 - (normalized * 60)).round
@@ -31,7 +31,7 @@ class SearchClient
           formatted_parts << "<span style=\"#{color_style}\">#{escaped_text}</span>"
         end
       end
-      
+
       formatted_parts.join(" ")
     end
   end

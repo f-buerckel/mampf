@@ -123,9 +123,9 @@ RSpec.describe(Medium, type: :model) do
     it "returns the Rails transcript stream path" do
       medium = FactoryBot.create(:lecture_medium)
       allow(medium).to receive(:transcript).and_return(instance_double(
-        TranscriptUploader::UploadedFile,
-        blank?: false
-      ))
+                                                         TranscriptUploader::UploadedFile,
+                                                         blank?: false
+                                                       ))
 
       expect(medium.transcript_url_with_host)
         .to eq(

@@ -249,7 +249,6 @@ Rails.application.routes.draw do
       to: "lectures#search_content",
       as: "lecture_search_content"
 
-
   get "lectures/:id/course",
       to: "lectures#display_course",
       as: "lecture_course"

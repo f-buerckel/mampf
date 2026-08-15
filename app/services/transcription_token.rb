@@ -1,5 +1,5 @@
 class TranscriptionToken
-  ALGORITHM = "SHA256"
+  ALGORITHM = "SHA256".freeze
   VIDEO_TTL = 30.minutes
   TRANSCRIPT_TTL = 1.hour
   PURPOSES = ["video", "transcript"].freeze
@@ -59,7 +59,7 @@ class TranscriptionToken
         validate_purpose!(purpose)
         raise(InvalidTokenError) unless payload.is_a?(Hash)
         raise(InvalidTokenError) unless payload.fetch("purpose") == purpose
-        raise(InvalidTokenError) unless Integer(payload.fetch("medium_id")) > 0
+        raise(InvalidTokenError) unless Integer(payload.fetch("medium_id")).positive?
         raise(InvalidTokenError) unless Integer(payload.fetch("expires_at")) > Time.current.to_i
         raise(InvalidTokenError) if payload.fetch("nonce").to_s.empty?
       end

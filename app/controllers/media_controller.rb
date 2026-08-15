@@ -739,7 +739,7 @@ class MediaController < ApplicationController
       payload = TranscriptionToken.verify!(params[:token], purpose: purpose)
       return true if payload.fetch("medium_id").to_i == @medium.id
 
-      raise TranscriptionToken::InvalidTokenError
+      raise(TranscriptionToken::InvalidTokenError)
     rescue TranscriptionToken::InvalidTokenError
       head :forbidden
       false
