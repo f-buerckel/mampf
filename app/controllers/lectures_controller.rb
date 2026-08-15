@@ -321,7 +321,9 @@ class LecturesController < ApplicationController
         @results = search_client.search_with_sentence_scoring(@query,
                                                               whitelist_lecture_ids: [@lecture.id])
         media_ids = @results.filter_map { |r| r["media_rails_id"] }.uniq
-        @media_by_id = Medium.where(id: media_ids).index_by(&:id)
+        lecture_media = @lecture.media_with_inheritance_uncached.where(id: media_ids)
+        @media_by_id = current_user.filter_visible_media(lecture_media).index_by(&:id)
+        @results.select! { |r| @media_by_id.key?(r["media_rails_id"]) }
       rescue StandardError => e
         @error = "Die Suche ist momentan nicht verfügbar. (#{e.message})"
       end

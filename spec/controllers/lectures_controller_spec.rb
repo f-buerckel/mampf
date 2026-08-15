@@ -59,4 +59,40 @@ RSpec.describe(LecturesController, type: :controller) do
       end
     end
   end
+
+  describe "GET #search_content" do
+    let(:searched_lecture) { create(:lecture, :released_for_all) }
+    let(:user) { create(:confirmed_user) }
+    let(:visible_medium) { create(:lecture_medium, teachable: searched_lecture, released: "all") }
+    let(:hidden_medium) { create(:lecture_medium, teachable: searched_lecture) }
+    let(:foreign_lecture) { create(:lecture, :released_for_all) }
+    let(:foreign_medium) { create(:lecture_medium, teachable: foreign_lecture, released: "all") }
+    let(:search_client) { instance_double(SearchClient) }
+
+    before do
+      sign_in user
+      create(:lecture_user_join, lecture: searched_lecture, user: user)
+      allow(SearchClient).to receive(:instance).and_return(search_client)
+      allow(search_client)
+        .to receive(:search_with_sentence_scoring)
+        .with("searching", whitelist_lecture_ids: [searched_lecture.id])
+        .and_return([
+                      { "media_rails_id" => visible_medium.id,
+                        "text" => "visible result", "start_time" => 1 },
+                      { "media_rails_id" => hidden_medium.id,
+                        "text" => "hidden result", "start_time" => 2 },
+                      { "media_rails_id" => foreign_medium.id,
+                        "text" => "foreign result", "start_time" => 3 }
+                    ])
+    end
+
+    it "only keeps results whose media belong to the lecture and are visible to the user" do
+      get :search_content, params: { id: searched_lecture.id, search: "searching" }
+
+      view_assigns = controller.view_assigns
+      expect(view_assigns["media_by_id"].keys).to contain_exactly(visible_medium.id)
+      expect(view_assigns["results"].map { |r| r["media_rails_id"] })
+        .to contain_exactly(visible_medium.id)
+    end
+  end
 end
