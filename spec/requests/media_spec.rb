@@ -267,6 +267,92 @@ RSpec.describe("Media", type: :request) do
     end
   end
 
+  describe "GET /media/:id/video/transcription_stream" do
+    let(:medium) { create(:lecture_medium, :with_video) }
+
+    it "serves a video with a valid transcription token" do
+      token = TranscriptionToken.generate(
+        medium_id: medium.id,
+        purpose: :video,
+        ttl: 5.minutes
+      )
+
+      get transcription_stream_video_medium_path(medium), params: { token: token }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.media_type).to eq("video/mp4")
+      expect(response.headers["Cache-Control"]).to eq("no-cache, no-store")
+    end
+
+    it "rejects a missing token" do
+      get transcription_stream_video_medium_path(medium)
+
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it "rejects a token for another medium" do
+      token = TranscriptionToken.generate(
+        medium_id: medium.id + 1,
+        purpose: :video,
+        ttl: 5.minutes
+      )
+
+      get transcription_stream_video_medium_path(medium), params: { token: token }
+
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
+  describe "POST /media/:id/transcribe" do
+    let(:medium) { create(:lecture_medium, :with_video) }
+    let(:search_client) { instance_double(SearchClient) }
+
+    before do
+      allow(SearchClient).to receive(:instance).and_return(search_client)
+      allow(search_client).to receive(:transcribe_lesson)
+    end
+
+    it "passes signed video and callback URLs to MampfSearch" do
+      expect(search_client).to receive(:transcribe_lesson) do |payload|
+        expect(payload[:video_url]).to include(
+          "/media/#{medium.id}/video/transcription_stream?token="
+        )
+        expect(payload[:transcript_upload_url]).to include(
+          "/api/webhooks/media/#{medium.id}/transcripts?token="
+        )
+      end
+
+      post transcribe_medium_path(medium)
+
+      expect(response).to have_http_status(:accepted)
+    end
+  end
+
+  describe "POST /api/webhooks/media/:id/transcripts" do
+    let(:medium) { create(:lecture_medium, :with_video) }
+
+    it "rejects a callback without a valid token" do
+      post add_transcript_path(medium), params: { transcript: "WEBVTT" }
+
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it "rejects a video token" do
+      token = TranscriptionToken.generate(
+        medium_id: medium.id,
+        purpose: :video,
+        ttl: 5.minutes
+      )
+
+      post add_transcript_path(medium), params: {
+        token: token,
+        transcript: "WEBVTT"
+      }
+
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
   describe "GET /media/:id/download/:sort" do
     let(:restricted_medium) { create(:lecture_medium, :with_manuscript) }
     let(:free_medium) { create(:lecture_medium, :with_manuscript, :released) }

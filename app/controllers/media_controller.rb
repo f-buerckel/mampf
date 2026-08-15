@@ -9,6 +9,7 @@ class MediaController < ApplicationController
                                                  :inline_manuscript,
                                                  :geogebra, :inline_geogebra,
                                                  :download, :search_content,
+                                                 :transcription_stream_video,
                                                  :add_transcript]
   before_action :set_medium, except: [:index, :new, :create, :search,
                                       :fill_teachable_select,
@@ -29,6 +30,7 @@ class MediaController < ApplicationController
                                              :inline_manuscript,
                                              :geogebra, :inline_geogebra,
                                              :download, :search_content,
+                                             :transcription_stream_video,
                                              :add_transcript]
   after_action :store_access, only: [:play, :display]
   authorize_resource except: [:index, :new, :create, :search,
@@ -36,6 +38,7 @@ class MediaController < ApplicationController
                               :fill_medium_preview, :render_medium_actions,
                               :render_import_media, :render_import_vertex,
                               :cancel_import_media, :cancel_import_vertex,
+                              :transcription_stream_video,
                               :add_transcript]
   layout "administration"
 
@@ -296,19 +299,37 @@ class MediaController < ApplicationController
 
     course = lecture.course
 
-    full_video_url = URI.join(request.base_url, @medium.video_url).to_s
+    video_token = TranscriptionToken.generate(
+      medium_id: @medium.id,
+      purpose: :video,
+      ttl: TranscriptionToken::VIDEO_TTL
+    )
+    transcript_token = TranscriptionToken.generate(
+      medium_id: @medium.id,
+      purpose: :transcript,
+      ttl: TranscriptionToken::TRANSCRIPT_TTL
+    )
 
     search_client.transcribe_lesson(
       media_rails_id: @medium.id,
       lesson_rails_id: lesson&.id,
       lecture_rails_id: lecture.id,
       course_rails_id: course.id,
-      video_url: full_video_url,
-      transcript_upload_url: add_transcript_url(@medium, host: request.base_url)
+      video_url: transcription_url(
+        transcription_stream_video_medium_path(@medium), video_token
+      ),
+      transcript_upload_url: transcription_url(
+        add_transcript_path(@medium), transcript_token
+      )
     )
+    head :accepted
   end
 
   def add_transcript
+    # TODO(mTLS): require and verify the MampfSearch client certificate here
+    # once service-to-service TLS is enabled.
+    return unless verify_transcription_token!(purpose: :transcript)
+
     if params[:transcript].present?
       @medium.transcript = params[:transcript]
       if @medium.save
@@ -385,6 +406,16 @@ class MediaController < ApplicationController
 
     send_stored_file(@medium.video, disposition: "inline", fallback: "video")
     prevent_caching unless @medium.free?
+  end
+
+  def transcription_stream_video
+    # TODO(mTLS): require and verify the MampfSearch client certificate here
+    # once service-to-service TLS is enabled.
+    return unless verify_transcription_token!(purpose: :video)
+    return head :not_found if @medium.video.nil?
+
+    send_stored_file(@medium.video, disposition: "inline", fallback: "video")
+    prevent_caching
   end
 
   def stream_transcript
@@ -699,6 +730,20 @@ class MediaController < ApplicationController
   end
 
   private
+
+    def transcription_url(path, token)
+      "#{request.base_url}#{path}?token=#{ERB::Util.url_encode(token)}"
+    end
+
+    def verify_transcription_token!(purpose:)
+      payload = TranscriptionToken.verify!(params[:token], purpose: purpose)
+      return true if payload.fetch("medium_id").to_i == @medium.id
+
+      raise TranscriptionToken::InvalidTokenError
+    rescue TranscriptionToken::InvalidTokenError
+      head :forbidden
+      false
+    end
 
     def medium_params
       params.expect(medium: [:sort, :description, :video, :manuscript,
