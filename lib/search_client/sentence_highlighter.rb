@@ -19,7 +19,7 @@ class SearchClient
           was_cut = false
 
           # Clamp score between 0.2 and 1.0
-          clamped_score = [[score, 0.2].max, 1.0].min
+          clamped_score = score.clamp(0.2, 1.0)
 
           # Calculate hue: 60 (yellow) at score 0.2, 0 (red) at score 1.0
           normalized = (clamped_score - 0.2) / 0.8
