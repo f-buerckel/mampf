@@ -38,19 +38,20 @@ export class SubtitleButton extends Component {
     }
 
     const updateSubtitles = () => {
+      container.replaceChildren();
+
       if (!subtitlesEnabled) {
-        container.innerHTML = "";
         return;
       }
-      
+
       if (subtitleTrack.activeCues && subtitleTrack.activeCues.length > 0) {
         let text = "";
         for (let i = 0; i < subtitleTrack.activeCues.length; i++) {
           text += subtitleTrack.activeCues[i].text + "\n";
         }
-        container.innerHTML = "<span>" + text.trim().replace(/\n/g, "<br>") + "</span>";
-      } else {
-        container.innerHTML = "";
+        const span = document.createElement("span");
+        span.textContent = text.trim();
+        container.appendChild(span);
       }
     };
 
@@ -59,17 +60,18 @@ export class SubtitleButton extends Component {
 
     element.addEventListener("click", function () {
       subtitlesEnabled = !subtitlesEnabled;
-      
-    if (subtitlesEnabled) {
-      element.classList.remove("bi-badge-cc");
-      element.classList.add("bi-badge-cc-fill");
-      element.style.color = "#282828ff";
-    } else {
-      element.classList.remove("bi-badge-cc-fill");
-      element.classList.add("bi-badge-cc");
-      element.style.color = ""; 
-    }
-      
+
+      if (subtitlesEnabled) {
+        element.classList.remove("bi-badge-cc");
+        element.classList.add("bi-badge-cc-fill");
+        element.style.color = "#282828ff";
+      }
+      else {
+        element.classList.remove("bi-badge-cc-fill");
+        element.classList.add("bi-badge-cc");
+        element.style.color = "";
+      }
+
       updateSubtitles();
     });
   }

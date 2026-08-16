@@ -1,38 +1,36 @@
-require "erb"
-
 class SearchClient
   module SentenceHighlighter
-    def self.format(sentences)
-      formatted_parts = []
+    def self.segments(sentences)
+      segments = []
       was_cut = false
 
       sentences.each do |s|
         score = s["rerank_score"] || 0
-        text = s["sentence"]
+        text = s["sentence"].to_s
 
         if score < 0.2
           unless was_cut
-            formatted_parts << "[...]"
+            segments << { "text" => "[...]", "color" => nil }
             was_cut = true
           end
         else
           was_cut = false
-
-          # Clamp score between 0.2 and 1.0
-          clamped_score = score.clamp(0.2, 1.0)
-
-          # Calculate hue: 60 (yellow) at score 0.2, 0 (red) at score 1.0
-          normalized = (clamped_score - 0.2) / 0.8
-          hue = (60 - (normalized * 60)).round
-
-          color_style = "background-color: hsla(#{hue}, 100%, 50%, 0.3);"
-          escaped_text = ERB::Util.html_escape(text)
-
-          formatted_parts << "<span style=\"#{color_style}\">#{escaped_text}</span>"
+          segments << { "text" => text, "color" => color_for(score) }
         end
       end
 
-      formatted_parts.join(" ")
+      segments
+    end
+
+    def self.color_for(score)
+      # Clamp score between 0.2 and 1.0
+      clamped_score = [[score, 0.2].max, 1.0].min
+
+      # Calculate hue: 60 (yellow) at score 0.2, 0 (red) at score 1.0
+      normalized = (clamped_score - 0.2) / 0.8
+      hue = (60 - (normalized * 60)).round
+
+      "hsla(#{hue}, 100%, 50%, 0.3)"
     end
   end
 end

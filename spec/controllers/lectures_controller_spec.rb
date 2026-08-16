@@ -78,11 +78,14 @@ RSpec.describe(LecturesController, type: :controller) do
         .with("searching", whitelist_lecture_ids: [searched_lecture.id])
         .and_return([
                       { "media_rails_id" => visible_medium.id,
-                        "text" => "visible result", "start_time" => 1 },
+                        "text" => "visible result", "start_time" => 1,
+                        "highlight_segments" => [{ "text" => "visible result", "color" => nil }] },
                       { "media_rails_id" => hidden_medium.id,
-                        "text" => "hidden result", "start_time" => 2 },
+                        "text" => "hidden result", "start_time" => 2,
+                        "highlight_segments" => [{ "text" => "hidden result", "color" => nil }] },
                       { "media_rails_id" => foreign_medium.id,
-                        "text" => "foreign result", "start_time" => 3 }
+                        "text" => "foreign result", "start_time" => 3,
+                        "highlight_segments" => [{ "text" => "foreign result", "color" => nil }] }
                     ])
     end
 

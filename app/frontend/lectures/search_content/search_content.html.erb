@@ -72,7 +72,13 @@
                   <% end %>
                 </div>
                 <p class="mb-2 text-secondary" style="font-size: 0.95rem; line-height: 1.5; font-style: italic;">
-                  &bdquo;<%= sanitize(result["text"], tags: %w[span], attributes: %w[style]) %>&ldquo;
+                  &bdquo;<% result["highlight_segments"].each do |segment| %>
+                    <% if segment["color"].present? %>
+                      <span style="background-color: <%= segment["color"] %>;"><%= segment["text"] %></span>
+                    <% else %>
+                      <%= segment["text"] %>
+                    <% end %>
+                  <% end %>&ldquo;
                 </p>
                 <% if play_link %>
                   <div class="mt-2 text-end">

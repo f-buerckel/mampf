@@ -63,9 +63,11 @@ class SearchClient
       filters: filters
     }
 
-    perform_request do |client|
+    results = perform_request do |client|
       client.post("/lesson/search", json: payload)
     end
+
+    normalize_results(results)
   end
 
   def score_sentences(query, chunk_ids)
@@ -80,21 +82,25 @@ class SearchClient
 
     top_results = results.first(top_k)
     chunk_ids = top_results.pluck("chunk_id")
-    return results if chunk_ids.empty?
 
-    begin
-      scores = score_sentences(query, chunk_ids)
+    if chunk_ids.present?
+      begin
+        scores = score_sentences(query, chunk_ids)
 
-      top_results.each_with_index do |result, index|
-        next unless scores[index] && scores[index]["sentences"]
+        top_results.each_with_index do |result, index|
+          next unless scores[index] && scores[index]["sentences"]
 
-        sentences_data = scores[index]["sentences"]
-        formatted = SentenceHighlighter.format(sentences_data)
-        result["text"] = formatted
+          result["highlight_segments"] = SentenceHighlighter.segments(scores[index]["sentences"])
+        end
+      rescue MampfSearchError => e
+        Rails.logger.error("Sentence scoring failed: #{e.message}") if defined?(Rails)
       end
-    rescue MampfSearchError => e
-      Rails.logger.error("Sentence scoring failed: #{e.message}") if defined?(Rails)
-      # fallback to original text if scoring fails
+    end
+
+    results.each do |result|
+      segments = result["highlight_segments"]
+      segments = [{ "text" => result["text"], "color" => nil }] if segments.blank?
+      result["highlight_segments"] = segments
     end
 
     results
@@ -109,6 +115,30 @@ class SearchClient
       raise(TimeoutError, "The search took too long to complete.")
     rescue HTTP::Error, Errno::ECONNREFUSED => e
       raise(ServiceUnavailableError, "The search service is currently offline: #{e.message}")
+    end
+
+    def normalize_results(results)
+      unless results.is_a?(Array)
+        raise(InvalidResponseError, "search service returned an unexpected response format")
+      end
+
+      results.each_with_index do |result, index|
+        validate_field!(result, index, "media_rails_id", Integer)
+        validate_field!(result, index, "start_time", Numeric)
+        validate_field!(result, index, "text", String)
+        validate_field!(result, index, "rrf_score", Numeric)
+      end
+
+      results
+    end
+
+    def validate_field!(result, index, field, type)
+      value = result.is_a?(Hash) ? result[field] : nil
+      return if value.is_a?(type)
+
+      raise(InvalidResponseError,
+            "search service returned a malformed result at index #{index}: " \
+            "#{field.inspect} is missing or has the wrong type")
     end
 
     def handle_response(response)

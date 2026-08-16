@@ -8,7 +8,7 @@ export class SearchPopup {
     this.input = null;
     this.resultsContainer = null;
     this.isVisible = false;
-    
+
     this.createDomElements();
     this.addEventListeners();
   }
@@ -17,17 +17,20 @@ export class SearchPopup {
     this.container = document.createElement("div");
     this.container.className = "thyme-search-popup";
     this.container.style.display = "none";
-    
+
     const wrapper = document.createElement("div");
     wrapper.className = "thyme-search-wrapper";
 
     const header = document.createElement("div");
     header.className = "thyme-search-header";
-    header.innerHTML = "<h4>Search in Media</h4>";
-    
+
+    const title = document.createElement("h4");
+    title.textContent = "Search in Media";
+    header.appendChild(title);
+
     const closeBtn = document.createElement("span");
     closeBtn.className = "thyme-search-close";
-    closeBtn.innerHTML = "&times;";
+    closeBtn.textContent = "×";
     closeBtn.onclick = () => this.hide();
     header.appendChild(closeBtn);
 
@@ -38,7 +41,7 @@ export class SearchPopup {
     this.input.type = "text";
     this.input.className = "thyme-search-input";
     this.input.placeholder = "Search for terms... (Press Enter to search)";
-    
+
     inputWrapper.appendChild(this.input);
 
     this.resultsContainer = document.createElement("div");
@@ -57,7 +60,7 @@ export class SearchPopup {
     this.input.addEventListener("keydown", (e) => {
       // Prevent other player shortcuts from triggering when typing in search
       e.stopPropagation();
-      
+
       if (e.key === "Enter") {
         this.performSearch();
       }
@@ -77,7 +80,8 @@ export class SearchPopup {
   toggle() {
     if (this.isVisible) {
       this.hide();
-    } else {
+    }
+    else {
       this.show();
     }
   }
@@ -107,58 +111,70 @@ export class SearchPopup {
     const query = this.input.value.trim();
     if (!query) return;
 
-    this.resultsContainer.innerHTML = "<div class='thyme-search-loading'>Searching...</div>";
-    
+    this.resultsContainer.replaceChildren();
+    const loading = document.createElement("div");
+    loading.className = "thyme-search-loading";
+    loading.textContent = "Searching...";
+    this.resultsContainer.appendChild(loading);
+
     try {
       const response = await fetch(`/media/${this.mediumId}/search_content?query=${encodeURIComponent(query)}`);
-      
+
       if (!response.ok) {
         throw new Error("Search failed");
       }
 
       const results = await response.json();
       this.renderResults(results);
-    } catch (error) {
-      this.resultsContainer.innerHTML = "<div class='thyme-search-error'>Error loading results. Please try again.</div>";
+    }
+    catch {
+      this.resultsContainer.replaceChildren();
+      const errorElement = document.createElement("div");
+      errorElement.className = "thyme-search-error";
+      errorElement.textContent = "Error loading results. Please try again.";
+      this.resultsContainer.appendChild(errorElement);
     }
   }
 
   renderResults(results) {
-    this.resultsContainer.innerHTML = "";
+    this.resultsContainer.replaceChildren();
 
-    let items = Array.isArray(results) ? results : (results.results || results.data || []);
+    const items = Array.isArray(results) ? results : [];
 
     if (items.length === 0) {
-      this.resultsContainer.innerHTML = "<div class='thyme-search-no-results'>No results found.</div>";
+      const noResults = document.createElement("div");
+      noResults.className = "thyme-search-no-results";
+      noResults.textContent = "No results found.";
+      this.resultsContainer.appendChild(noResults);
       return;
     }
 
-    items.forEach(item => {
-      // Robust field extraction depending on backend schema
-      const time = item.start_time || item.time || item.timestamp || 0;
-      const text = item.content || item.text || item.description || "Match found";
+    items.forEach((item) => {
+      const time = Number(item.start_time);
+      const relevance = item.rerank_score ?? item.rrf_score;
 
       const resultElement = document.createElement("div");
       resultElement.className = "thyme-search-result-item";
-      
+
       const timeLabel = document.createElement("span");
       timeLabel.className = "thyme-search-result-time";
-      
-      let relevanceHtml = "";
-      const relevance = item.rerank_score || item.rrf_score;
-      if (relevance) {
-        relevanceHtml = `<small style="color: #6c757d; margin-left: 8px;">Relevanz: ${(relevance * 100).toFixed(2)}%</small>`;
+      timeLabel.textContent = secondsToTime(time);
+
+      if (Number.isFinite(relevance)) {
+        const relevanceLabel = document.createElement("small");
+        relevanceLabel.style.color = "#6c757d";
+        relevanceLabel.style.marginLeft = "8px";
+        relevanceLabel.textContent = `Relevanz: ${(relevance * 100).toFixed(2)}%`;
+        timeLabel.appendChild(relevanceLabel);
       }
-      
-      timeLabel.innerHTML = secondsToTime(time) + relevanceHtml;
-      
+
       const textLabel = document.createElement("span");
       textLabel.className = "thyme-search-result-text";
-      textLabel.innerHTML = text;
+      this.renderText(textLabel, item);
 
       resultElement.appendChild(timeLabel);
       resultElement.appendChild(textLabel);
-      
+
       resultElement.onclick = () => {
         this.videoElement.currentTime = time;
         this.videoElement.play();
@@ -166,6 +182,17 @@ export class SearchPopup {
       };
 
       this.resultsContainer.appendChild(resultElement);
+    });
+  }
+
+  renderText(container, item) {
+    item.highlight_segments.forEach((segment) => {
+      const span = document.createElement("span");
+      span.textContent = segment.text;
+      if (segment.color) {
+        span.style.backgroundColor = segment.color;
+      }
+      container.appendChild(span);
     });
   }
 }
