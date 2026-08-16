@@ -315,22 +315,44 @@ class LecturesController < ApplicationController
     authorize! :show, @lecture
     @query = params[:search]
 
-    if @query.present?
-      begin
-        search_client = SearchClient.instance
-        @results = search_client.search_with_sentence_scoring(@query,
-                                                              whitelist_lecture_ids: [@lecture.id])
-        media_ids = @results.filter_map { |r| r["media_rails_id"] }.uniq
-        lecture_media = @lecture.media_with_inheritance_uncached.where(id: media_ids)
-        @media_by_id = current_user.filter_visible_media(lecture_media).index_by(&:id)
-        @results.select! { |r| @media_by_id.key?(r["media_rails_id"]) }
-      rescue StandardError => e
-        @error = "Die Suche ist momentan nicht verfügbar. (#{e.message})"
-      end
-    end
-
     render template: "lectures/search_content/search_content",
            layout: turbo_frame_request? ? "turbo_frame" : "application"
+  end
+
+  def search_content_results
+    authorize! :show, @lecture
+    query = params[:search]
+
+    return render(json: { results: [] }) if query.blank?
+
+    begin
+      search_client = SearchClient.instance
+      results = search_client.search_with_sentence_scoring(
+        query,
+        whitelist_lecture_ids: [@lecture.id]
+      )
+      media_ids = results.filter_map { |r| r["media_rails_id"] }.uniq
+      lecture_media = @lecture.media_with_inheritance_uncached.where(id: media_ids)
+      media_by_id = current_user.filter_visible_media(lecture_media).index_by(&:id)
+      results.select! { |r| media_by_id.key?(r["media_rails_id"]) }
+
+      formatted = results.map do |result|
+        medium = media_by_id[result["media_rails_id"]]
+        {
+          media_id: medium.id,
+          media_title: medium.title,
+          play_url: play_medium_path(medium, time: result["start_time"].to_i),
+          start_time: result["start_time"].to_i,
+          score: ((result["rerank_score"] || result["rrf_score"]).to_f * 100).round(2),
+          highlights: sanitize_highlight_segments(result["highlight_segments"])
+        }
+      end
+      render json: { results: formatted }
+    rescue SearchClient::MampfSearchError => e
+      Rails.logger.error("Lecture content search failed: #{e.message}")
+      render json: { error: I18n.t("search.mampfsearch_unavailable") },
+             status: :service_unavailable
+    end
   end
 
   def show_random_quizzes
@@ -535,5 +557,18 @@ class LecturesController < ApplicationController
       return if @lecture.course.enough_questions?
 
       redirect_to :root, alert: I18n.t("controllers.no_test")
+    end
+
+    def sanitize_highlight_segments(segments)
+      return [] unless segments.is_a?(Array)
+
+      segments.filter_map do |segment|
+        next unless segment.is_a?(Hash)
+
+        {
+          text: segment["text"].to_s,
+          color: segment["color"].presence
+        }
+      end
     end
 end

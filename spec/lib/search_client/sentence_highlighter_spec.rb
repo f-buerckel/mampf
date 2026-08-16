@@ -6,16 +6,17 @@ RSpec.describe(SearchClient::SentenceHighlighter) do
       sentences = [{ "sentence" => "The quick brown fox", "rerank_score" => 0.8 }]
 
       expect(described_class.segments(sentences)).to eq([
-        { "text" => "The quick brown fox", "color" => described_class.color_for(0.8) }
-      ])
+                                                          { "text" => "The quick brown fox",
+                                                            "color" => described_class.color_for(0.8) }
+                                                        ])
     end
 
     it "replaces a sub-threshold sentence with a cut marker" do
       sentences = [{ "sentence" => "Low relevance", "rerank_score" => 0.1 }]
 
       expect(described_class.segments(sentences)).to eq([
-        { "text" => "[...]", "color" => nil }
-      ])
+                                                          { "text" => "[...]", "color" => nil }
+                                                        ])
     end
 
     it "collapses consecutive low-scoring sentences into a single cut marker" do
@@ -26,17 +27,19 @@ RSpec.describe(SearchClient::SentenceHighlighter) do
       ]
 
       expect(described_class.segments(sentences)).to eq([
-        { "text" => "Relevant sentence", "color" => described_class.color_for(0.9) },
-        { "text" => "[...]", "color" => nil }
-      ])
+                                                          { "text" => "Relevant sentence",
+                                                            "color" => described_class.color_for(0.9) },
+                                                          { "text" => "[...]", "color" => nil }
+                                                        ])
     end
 
     it "keeps untrusted sentence text as raw data, not embedded in markup" do
       sentences = [{ "sentence" => "<script>alert(1)</script>", "rerank_score" => 0.9 }]
 
       expect(described_class.segments(sentences)).to eq([
-        { "text" => "<script>alert(1)</script>", "color" => described_class.color_for(0.9) }
-      ])
+                                                          { "text" => "<script>alert(1)</script>",
+                                                            "color" => described_class.color_for(0.9) }
+                                                        ])
     end
   end
 

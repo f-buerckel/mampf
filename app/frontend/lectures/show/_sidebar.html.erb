@@ -74,9 +74,11 @@
   <%# Suche %>
   <% fullpath = lecture_search_content_path(lecture) %>
   <% active_class = get_class_for_path(fullpath) %>
+  <% search_available = MampfsearchHealth.search_available? %>
   <li class="sidebar-item nav-link <%= active_class %>
-      <%= content_accessible ? "" : "disabled" %>">
+      <%= content_accessible && search_available ? "" : "disabled" %>">
     <%= link_to url_for(fullpath),
+        title: (search_available ? nil : t('search.mampfsearch_unavailable')),
         data: { turbo_frame: "main", action: "click->lecture-sidebar#setActive" } do %>
       <i class="bi bi-search<%= active_class.present? ? "-fill" : "" %>"></i>
       Suche

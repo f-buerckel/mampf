@@ -3,7 +3,7 @@ export const SEARCH_SHORTCUT = {
   key: "s",
   shiftKey: true,
   ctrlKey: false,
-  metaKey: false
+  metaKey: false,
 };
 
 /**
@@ -122,13 +122,13 @@ export function addSearchShortcuts(searchPopup) {
     if (thymeAttributes.lockKeyListeners && !searchPopup.isVisible) {
       return;
     }
-    
+
     // Check if the event matches the configured SEARCH_SHORTCUT
     if (
-      evt.key.toLowerCase() === SEARCH_SHORTCUT.key.toLowerCase() &&
-      evt.shiftKey === SEARCH_SHORTCUT.shiftKey &&
-      evt.ctrlKey === SEARCH_SHORTCUT.ctrlKey &&
-      evt.metaKey === SEARCH_SHORTCUT.metaKey
+      evt.key.toLowerCase() === SEARCH_SHORTCUT.key.toLowerCase()
+      && evt.shiftKey === SEARCH_SHORTCUT.shiftKey
+      && evt.ctrlKey === SEARCH_SHORTCUT.ctrlKey
+      && evt.metaKey === SEARCH_SHORTCUT.metaKey
     ) {
       evt.preventDefault(); // prevent any browser default
       searchPopup.toggle();

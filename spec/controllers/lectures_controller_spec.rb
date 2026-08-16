@@ -60,7 +60,7 @@ RSpec.describe(LecturesController, type: :controller) do
     end
   end
 
-  describe "GET #search_content" do
+  describe "GET #search_content_results" do
     let(:searched_lecture) { create(:lecture, :released_for_all) }
     let(:user) { create(:confirmed_user) }
     let(:visible_medium) { create(:lecture_medium, teachable: searched_lecture, released: "all") }
@@ -89,13 +89,30 @@ RSpec.describe(LecturesController, type: :controller) do
                     ])
     end
 
-    it "only keeps results whose media belong to the lecture and are visible to the user" do
-      get :search_content, params: { id: searched_lecture.id, search: "searching" }
+    it "only returns results whose media belong to the lecture and are visible to the user" do
+      get :search_content_results, params: { id: searched_lecture.id, search: "searching" }
 
-      view_assigns = controller.view_assigns
-      expect(view_assigns["media_by_id"].keys).to contain_exactly(visible_medium.id)
-      expect(view_assigns["results"].map { |r| r["media_rails_id"] })
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["results"].pluck("media_id"))
         .to contain_exactly(visible_medium.id)
+    end
+
+    it "returns an empty result list for a blank query" do
+      get :search_content_results, params: { id: searched_lecture.id, search: "" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["results"]).to eq([])
+    end
+
+    it "returns an error when MampfSearch is unavailable" do
+      allow(search_client)
+        .to receive(:search_with_sentence_scoring)
+        .and_raise(SearchClient::ServiceUnavailableError, "down")
+
+      get :search_content_results, params: { id: searched_lecture.id, search: "searching" }
+
+      expect(response).to have_http_status(:service_unavailable)
+      expect(response.parsed_body["error"]).to eq(I18n.t("search.mampfsearch_unavailable"))
     end
   end
 end

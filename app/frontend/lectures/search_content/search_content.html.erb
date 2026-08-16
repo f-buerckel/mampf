@@ -17,85 +17,41 @@
     <h2 class="text-center mb-4">
       <i class="bi bi-search me-2"></i>Inhalte durchsuchen
     </h2>
-    
-    <%= form_with url: lecture_search_content_path(@lecture), method: :get, local: true, data: { turbo_frame: "main" } do |f| %>
-      <div class="input-group input-group-lg shadow-sm">
-        <%= f.text_field :search, class: "form-control", placeholder: "Suche in der Veranstaltung...", value: @query, autofocus: true %>
-        <button class="btn btn-primary" type="submit">
-          Suchen
-        </button>
-      </div>
-    <% end %>
 
-    <% if @query.present? %>
-      <div class="mt-5">
-        <h4 class="text-muted text-center mb-4">
-          Ergebnisse für: <strong><%= @query %></strong>
-        </h4>
-        
-        <% if @error.present? %>
-          <div class="alert alert-danger mt-4 text-center">
-            <i class="bi bi-exclamation-triangle me-2"></i>
-            <%= @error %>
-          </div>
-        <% elsif @results.blank? %>
-          <div class="alert alert-secondary mt-4 text-center">
-            <i class="bi bi-info-circle me-2"></i>
-            Keine Ergebnisse gefunden.
-          </div>
-        <% else %>
-          <div class="list-group shadow-sm">
-            <% @results.each do |result| %>
-              <% video_medium = @media_by_id[result["media_rails_id"]] %>
-              <% timestamp = TimeStamp.new(total_seconds: result["start_time"]) %>
-              <% play_link = video_medium ? play_medium_path(video_medium, time: result["start_time"]) : nil %>
-              
-              <% if play_link %>
-                <a href="<%= play_link %>" target="_blank" class="list-group-item list-group-item-action flex-column align-items-start p-4 search-result-item border-start-0 border-end-0 border-top-0 border-bottom">
-              <% else %>
-                <div class="list-group-item flex-column align-items-start p-4 border-start-0 border-end-0 border-top-0 border-bottom">
-              <% end %>
-                <div class="d-flex w-100 justify-content-between mb-2">
-                  <h5 class="mb-1 text-primary d-flex align-items-center">
-                    <i class="bi <%= play_link ? 'bi-play-circle-fill' : 'bi-chat-left-quote' %> me-2 fs-5 text-primary"></i>
-                    <%= video_medium ? video_medium.title : "Unbekanntes Medium" %>
-                    <% if play_link %>
-                      <span class="badge bg-light text-primary border border-primary ms-3" style="font-size: 0.8rem;">
-                        <i class="bi bi-clock me-1"></i><%= timestamp.hms_colon_string %>
-                      </span>
-                    <% end %>
-                  </h5>
-                  <% if result["rerank_score"] %>
-                    <small class="text-muted">Relevanz: <%= (result["rerank_score"] * 100).round(2) %>%</small>
-                  <% elsif result["rrf_score"] %>
-                    <small class="text-muted">Relevanz: <%= (result["rrf_score"] * 100).round(2) %>%</small>
-                  <% end %>
-                </div>
-                <p class="mb-2 text-secondary" style="font-size: 0.95rem; line-height: 1.5; font-style: italic;">
-                  &bdquo;<% result["highlight_segments"].each do |segment| %>
-                    <% if segment["color"].present? %>
-                      <span style="background-color: <%= segment["color"] %>;"><%= segment["text"] %></span>
-                    <% else %>
-                      <%= segment["text"] %>
-                    <% end %>
-                  <% end %>&ldquo;
-                </p>
-                <% if play_link %>
-                  <div class="mt-2 text-end">
-                    <span class="text-primary fw-semibold" style="font-size: 0.85rem;">
-                      Video abspielen ab <%= timestamp.hms_colon_string %> <i class="bi bi-arrow-right-short ms-1"></i>
-                    </span>
-                  </div>
-                <% end %>
-              <% if play_link %>
-                </a>
-              <% else %>
-                </div>
-              <% end %>
-            <% end %>
-          </div>
-        <% end %>
+    <div data-controller="search-client-status"
+         data-search-client-status-url-value="<%= lecture_search_content_results_path(@lecture) %>"
+         data-search-client-status-connecting-value="<%= t('search.mampfsearch_searching') %>"
+         data-search-client-status-labels-value="<%= {
+           heading: t('search.results_heading'),
+           no_results: t('search.no_results'),
+           relevance: t('search.relevance'),
+           play_from: t('search.play_from'),
+           unknown_medium: t('search.unknown_medium')
+         }.to_json %>">
+      <%= form_with url: lecture_search_content_results_path(@lecture),
+                    method: :get,
+                    data: { turbo: false,
+                            search_client_status_target: "form" } do |f| %>
+        <div class="input-group input-group-lg shadow-sm">
+          <%= f.text_field :search,
+                           class: "form-control",
+                           placeholder: "Suche in der Veranstaltung...",
+                           value: @query,
+                           autofocus: true,
+                           data: { search_client_status_target: "input" } %>
+          <button class="btn btn-primary" type="submit">
+            Suchen
+          </button>
+        </div>
+      <% end %>
+
+      <div class="text-center text-muted" data-search-client-status-target="status"></div>
+      <div class="alert alert-danger mt-4 text-center d-none"
+           data-search-client-status-target="unavailable">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <%= t('search.mampfsearch_unavailable') %>
       </div>
-    <% end %>
+      <div data-search-client-status-target="content"></div>
+    </div>
   </div>
 </div>

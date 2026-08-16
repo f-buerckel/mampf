@@ -8,6 +8,13 @@ de:
       Aufgrund Deiner %{profile} wurde(n) %{count} Treffer aus der
       Datenbank nicht berücksichtigt.
     settings: 'Profileinstellungen'
+    mampfsearch_unavailable: 'MampfSearch ist derzeit nicht verfügbar.'
+    mampfsearch_searching: 'Suche läuft …'
+    results_heading: 'Ergebnisse für: %{query}'
+    no_results: 'Keine Ergebnisse gefunden.'
+    relevance: 'Relevanz: %{score}%'
+    play_from: 'Video abspielen ab %{time}'
+    unknown_medium: 'Unbekanntes Medium'
     click_and_paste: >
       Wenn Du den Begriff anklickst, wird er in das Suchfeld "Volltext" kopiert.
     helpdesks:

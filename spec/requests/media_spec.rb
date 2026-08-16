@@ -326,6 +326,17 @@ RSpec.describe("Media", type: :request) do
 
       expect(response).to have_http_status(:accepted)
     end
+
+    it "redirects with an alert when MampfSearch is unavailable" do
+      allow(search_client)
+        .to receive(:transcribe_lesson)
+        .and_raise(SearchClient::ServiceUnavailableError, "down")
+
+      post transcribe_medium_path(medium)
+
+      expect(response).to have_http_status(:redirect)
+      expect(flash[:alert]).to eq(I18n.t("search.mampfsearch_unavailable"))
+    end
   end
 
   describe "POST /api/webhooks/media/:id/transcripts" do

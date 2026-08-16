@@ -15,21 +15,15 @@ class SearchClient
   class InvalidResponseError < MampfSearchError; end
 
   def initialize(base_url: ENV["MAMPFSEARCH_BASE_URL"].presence, pool_size: 5, timeout_seconds: 5)
-    raise(ArgumentError, "base_url is required and cannot be empty") if base_url.to_s.strip.empty?
-
     @base_url = base_url
     @timeout = timeout_seconds
+
+    return if @base_url.blank?
 
     @pool = ConnectionPool.new(size: pool_size, timeout: @timeout) do
       HTTP.persistent(@base_url)
           .timeout(connect: @timeout, write: @timeout, read: @timeout)
           .headers(accept: "application/json", content_type: "application/json")
-    end
-  end
-
-  def list_lessons
-    perform_request do |client|
-      client.post("/lesson/list")
     end
   end
 
@@ -47,6 +41,12 @@ class SearchClient
 
     perform_request do |client|
       client.post("/lesson/ingest", params: payload)
+    end
+  end
+
+  def health
+    perform_request do |client|
+      client.get("/ready")
     end
   end
 
@@ -109,12 +109,19 @@ class SearchClient
   private
 
     def perform_request(&)
+      unless @pool
+        raise(ServiceUnavailableError,
+              "MampfSearch is not configured (MAMPFSEARCH_BASE_URL is missing)")
+      end
+
       response = @pool.with(&)
       handle_response(response)
     rescue HTTP::TimeoutError
       raise(TimeoutError, "The search took too long to complete.")
     rescue HTTP::Error, Errno::ECONNREFUSED => e
       raise(ServiceUnavailableError, "The search service is currently offline: #{e.message}")
+    rescue JSON::ParserError => e
+      raise(InvalidResponseError, "The search service returned a non-JSON response: #{e.message}")
     end
 
     def normalize_results(results)

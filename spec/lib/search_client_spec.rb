@@ -55,8 +55,8 @@ RSpec.describe(SearchClient) do
 
       expect(scored).to all(have_key("highlight_segments"))
       expect(scored.first["highlight_segments"]).to eq([
-        { "text" => "chunk one", "color" => nil }
-      ])
+                                                         { "text" => "chunk one", "color" => nil }
+                                                       ])
     end
 
     it "uses sentence segments when scoring succeeds" do
@@ -67,12 +67,12 @@ RSpec.describe(SearchClient) do
       scored = client.search_with_sentence_scoring("query")
 
       expect(scored.first["highlight_segments"]).to eq([
-        { "text" => "relevant line",
-          "color" => SearchClient::SentenceHighlighter.color_for(0.9) }
-      ])
+                                                         { "text" => "relevant line",
+                                                           "color" => SearchClient::SentenceHighlighter.color_for(0.9) }
+                                                       ])
       expect(scored.last["highlight_segments"]).to eq([
-        { "text" => "chunk two", "color" => nil }
-      ])
+                                                        { "text" => "chunk two", "color" => nil }
+                                                      ])
     end
 
     it "falls back to a plain segment when scoring fails" do
@@ -84,8 +84,45 @@ RSpec.describe(SearchClient) do
 
       expect(scored).to all(have_key("highlight_segments"))
       expect(scored.first["highlight_segments"]).to eq([
-        { "text" => "chunk one", "color" => nil }
-      ])
+                                                         { "text" => "chunk one", "color" => nil }
+                                                       ])
+    end
+  end
+
+  describe "#health" do
+    let(:pool) { client.instance_variable_get(:@pool) }
+
+    def fake_response(code, body)
+      status = double("status", code: code)
+      double("response", status: status, body: double("body", to_s: body))
+    end
+
+    it "returns the parsed readiness payload" do
+      payload = '{"status":"ok","capabilities":{"search":true,"ingest":true}}'
+      fake_client = double("client", get: fake_response(200, payload))
+      allow(pool).to receive(:with) { |&block| block.call(fake_client) }
+
+      health = client.health
+
+      expect(health).to eq("status" => "ok",
+                           "capabilities" => { "search" => true, "ingest" => true })
+    end
+
+    it "raises InvalidResponseError on a non-JSON response" do
+      fake_client = double("client", get: fake_response(200, "<html>error</html>"))
+      allow(pool).to receive(:with) { |&block| block.call(fake_client) }
+
+      expect { client.health }
+        .to raise_error(SearchClient::InvalidResponseError, /non-JSON/)
+    end
+  end
+
+  describe "when not configured" do
+    let(:unconfigured) { described_class.send(:new, base_url: "") }
+
+    it "raises ServiceUnavailableError on a request instead of ArgumentError" do
+      expect { unconfigured.health }
+        .to raise_error(SearchClient::ServiceUnavailableError, /not configured/)
     end
   end
 end

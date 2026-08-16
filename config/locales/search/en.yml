@@ -7,6 +7,13 @@ en:
       %{count} additional results from the database are not shown because of
       your %{profile}.
     settings: 'profile settings'
+    mampfsearch_unavailable: 'MampfSearch is currently not available.'
+    mampfsearch_searching: 'Searching …'
+    results_heading: 'Results for: %{query}'
+    no_results: 'No results found.'
+    relevance: 'Relevance: %{score}%'
+    play_from: 'Play video from %{time}'
+    unknown_medium: 'Unknown medium'
     click_and_paste: >
       If you click this term, it will be copied to the "fulltext" field.
     helpdesks:

@@ -49,14 +49,6 @@ class MediaController < ApplicationController
   def index
     authorize! :index, Medium.new
 
-    # Fetch lessons from SearchClient for testing
-    begin
-      search_client = SearchClient.instance
-      @test_lessons = search_client.list_lessons
-    rescue StandardError => e
-      @test_lessons_error = e.message
-    end
-
     @pagy, @media = Search::Searchers::ControllerSearcher.search(
       controller: self,
       model_class: Medium,
@@ -310,19 +302,24 @@ class MediaController < ApplicationController
       ttl: TranscriptionToken::TRANSCRIPT_TTL
     )
 
-    search_client.transcribe_lesson(
-      media_rails_id: @medium.id,
-      lesson_rails_id: lesson&.id,
-      lecture_rails_id: lecture.id,
-      course_rails_id: course.id,
-      video_url: transcription_url(
-        transcription_stream_video_medium_path(@medium), video_token
-      ),
-      transcript_upload_url: transcription_url(
-        add_transcript_path(@medium), transcript_token
+    begin
+      search_client.transcribe_lesson(
+        media_rails_id: @medium.id,
+        lesson_rails_id: lesson&.id,
+        lecture_rails_id: lecture.id,
+        course_rails_id: course.id,
+        video_url: transcription_url(
+          transcription_stream_video_medium_path(@medium), video_token
+        ),
+        transcript_upload_url: transcription_url(
+          add_transcript_path(@medium), transcript_token
+        )
       )
-    )
-    head :accepted
+      head :accepted
+    rescue SearchClient::MampfSearchError => e
+      Rails.logger.error("Transcription failed: #{e.message}")
+      redirect_back_or_to(root_path, alert: I18n.t("search.mampfsearch_unavailable"))
+    end
   end
 
   def add_transcript
@@ -345,15 +342,16 @@ class MediaController < ApplicationController
   def search_content
     authorize! :search_content, @medium
 
-    search_client = SearchClient.instance
-
     query = params[:query]
 
     begin
-      results = search_client.search_with_sentence_scoring(query, whitelist_media_ids: [@medium.id])
+      results = SearchClient.instance
+                            .search_with_sentence_scoring(query, whitelist_media_ids: [@medium.id])
       render json: results
     rescue SearchClient::MampfSearchError => e
-      render json: { error: e.message }, status: :unprocessable_content
+      Rails.logger.error("Media content search failed: #{e.message}")
+      render json: { error: I18n.t("search.mampfsearch_unavailable") },
+             status: :unprocessable_content
     end
   end
 

@@ -1,4 +1,5 @@
 import { secondsToTime } from "../utility";
+import { errorMessage, renderHighlightSegments } from "../../search_client_utils";
 
 export class SearchPopup {
   constructor(mediumId, videoElement) {
@@ -118,20 +119,23 @@ export class SearchPopup {
     this.resultsContainer.appendChild(loading);
 
     try {
-      const response = await fetch(`/media/${this.mediumId}/search_content?query=${encodeURIComponent(query)}`);
+      const response = await fetch(`/media/${this.mediumId}/search_content?query=${encodeURIComponent(query)}`, {
+        redirect: "manual",
+      });
 
-      if (!response.ok) {
-        throw new Error("Search failed");
+      if (!response.ok || response.redirected) {
+        throw new Error(await errorMessage(response));
       }
 
-      const results = await response.json();
+      const body = await response.json();
+      const results = Array.isArray(body) ? body : [];
       this.renderResults(results);
     }
-    catch {
+    catch (error) {
       this.resultsContainer.replaceChildren();
       const errorElement = document.createElement("div");
       errorElement.className = "thyme-search-error";
-      errorElement.textContent = "Error loading results. Please try again.";
+      errorElement.textContent = error.message || "Error loading results. Please try again.";
       this.resultsContainer.appendChild(errorElement);
     }
   }
@@ -186,13 +190,6 @@ export class SearchPopup {
   }
 
   renderText(container, item) {
-    item.highlight_segments.forEach((segment) => {
-      const span = document.createElement("span");
-      span.textContent = segment.text;
-      if (segment.color) {
-        span.style.backgroundColor = segment.color;
-      }
-      container.appendChild(span);
-    });
+    renderHighlightSegments(container, item.highlight_segments);
   }
 }

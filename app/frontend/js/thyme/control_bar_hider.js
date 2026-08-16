@@ -72,6 +72,4 @@ export class ControlBarHider {
     $(thymeAttributes.video).css("cursor", "none");
     $("#hypervideo-container").removeClass("control-bar-visible");
   }
-
-
 }

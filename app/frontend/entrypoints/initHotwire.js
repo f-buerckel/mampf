@@ -83,6 +83,9 @@ window.Stimulus.register("capacity-editor", CapacityEditorController);
 import SelectizeController from "~/controllers/selectize.controller.js";
 window.Stimulus.register("selectize", SelectizeController);
 
+import SearchClientStatusController from "~/controllers/search_client_status.controller.js";
+window.Stimulus.register("search-client-status", SearchClientStatusController);
+
 import ProfileController from "~/profile/profile.controller.js";
 window.Stimulus.register("profile", ProfileController);
 
