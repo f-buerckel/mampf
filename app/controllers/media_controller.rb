@@ -42,6 +42,14 @@ class MediaController < ApplicationController
                               :add_transcript]
   layout "administration"
 
+  rate_limit to: SearchClient::RATE_LIMIT, within: SearchClient::RATE_LIMIT_PERIOD,
+             only: :search_content,
+             by: -> { current_user&.id || request.remote_ip },
+             with: lambda {
+               render json: { error: I18n.t("search.too_many_requests") },
+                      status: :too_many_requests
+             }
+
   def current_ability
     @current_ability ||= MediumAbility.new(current_user)
   end
@@ -342,7 +350,13 @@ class MediaController < ApplicationController
   def search_content
     authorize! :search_content, @medium
 
-    query = params[:query]
+    query = params[:query].to_s.strip
+    return render(json: []) if query.blank?
+
+    if query.length > SearchClient::QUERY_MAX_LENGTH
+      return render(json: { error: I18n.t("search.query_too_long") },
+                    status: :unprocessable_content)
+    end
 
     begin
       results = SearchClient.instance

@@ -114,5 +114,14 @@ RSpec.describe(LecturesController, type: :controller) do
       expect(response).to have_http_status(:service_unavailable)
       expect(response.parsed_body["error"]).to eq(I18n.t("search.mampfsearch_unavailable"))
     end
+
+    it "returns a 422 for a query exceeding the length limit" do
+      long_query = "a" * (SearchClient::QUERY_MAX_LENGTH + 1)
+
+      get :search_content_results, params: { id: searched_lecture.id, search: long_query }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["error"]).to eq(I18n.t("search.query_too_long"))
+    end
   end
 end

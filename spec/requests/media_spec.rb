@@ -705,4 +705,61 @@ RSpec.describe("Media", type: :request) do
       expect(response).to have_http_status(:ok)
     end
   end
+
+  describe "GET /media/:id/search_content" do
+    let(:search_client) { instance_double(SearchClient) }
+    let(:free_medium) { create(:lecture_medium, :released) }
+
+    before do
+      sign_out user
+      allow(SearchClient).to receive(:instance).and_return(search_client)
+    end
+
+    it "returns an empty array for a blank query" do
+      get media_search_content_path(free_medium), params: { query: "" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body).to eq([])
+    end
+
+    it "returns a 422 for a query exceeding the length limit" do
+      long_query = "a" * (SearchClient::QUERY_MAX_LENGTH + 1)
+
+      get media_search_content_path(free_medium), params: { query: long_query }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["error"]).to eq(I18n.t("search.query_too_long"))
+    end
+
+    it "delegates to SearchClient for valid queries" do
+      expect(search_client).to receive(:search_with_sentence_scoring)
+        .with("functional", whitelist_media_ids: [free_medium.id])
+        .and_return([
+                      { "media_rails_id" => free_medium.id, "text" => "result",
+                        "start_time" => 0, "rrf_score" => 0.5,
+                        "highlight_segments" => [{ "text" => "result", "color" => nil }] }
+                    ])
+
+      get media_search_content_path(free_medium), params: { query: "functional" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body.first["text"]).to eq("result")
+    end
+
+    it "rate-limits search requests beyond the per-minute threshold" do
+      Rails.cache.clear
+      allow(search_client).to receive(:search_with_sentence_scoring)
+        .with("test", whitelist_media_ids: [free_medium.id])
+        .and_return([])
+
+      (SearchClient::RATE_LIMIT + 1).times do
+        get media_search_content_path(free_medium), params: { query: "test" }
+      end
+
+      expect(response).to have_http_status(:too_many_requests)
+      expect(response.parsed_body["error"]).to eq(I18n.t("search.too_many_requests"))
+    ensure
+      Rails.cache.clear
+    end
+  end
 end

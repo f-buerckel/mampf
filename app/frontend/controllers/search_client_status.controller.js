@@ -14,7 +14,8 @@ import { errorMessage, renderHighlightSegments } from "../js/search_client_utils
  * MaMpf is never affected if MampfSearch is down.
  */
 export default class extends Controller {
-  static targets = ["status", "content", "unavailable", "form", "input"];
+  static targets = ["status", "content", "unavailable", "unavailableMessage",
+    "form", "input"];
 
   static values = {
     url: String,
@@ -25,6 +26,8 @@ export default class extends Controller {
   connect() {
     if (!this.hasFormTarget || !this.hasInputTarget) return;
 
+    this.abortController = null;
+    this.isLoading = false;
     this.submitHandler = this.handleSubmit.bind(this);
     this.formTarget.addEventListener("submit", this.submitHandler);
 
@@ -34,6 +37,7 @@ export default class extends Controller {
   }
 
   disconnect() {
+    this.abortController?.abort();
     if (this.submitHandler && this.hasFormTarget) {
       this.formTarget.removeEventListener("submit", this.submitHandler);
     }
@@ -45,11 +49,17 @@ export default class extends Controller {
   }
 
   async load() {
+    if (this.isLoading) return;
+
     const url = this.buildUrl();
     if (!url) {
       this.clearContent();
       return;
     }
+
+    this.isLoading = true;
+    this.abortController?.abort();
+    this.abortController = new AbortController();
 
     this.setConnecting();
 
@@ -57,6 +67,7 @@ export default class extends Controller {
       const response = await fetch(url, {
         headers: { accept: "application/json" },
         redirect: "manual",
+        signal: this.abortController.signal,
       });
 
       if (!response.ok || response.redirected) {
@@ -72,8 +83,12 @@ export default class extends Controller {
       this.statusTarget.textContent = "";
       this.renderResults(results);
     }
-    catch {
-      this.setUnavailable();
+    catch (error) {
+      if (error.name === "AbortError") return;
+      this.setUnavailable(error.message);
+    }
+    finally {
+      this.isLoading = false;
     }
   }
 
@@ -165,9 +180,12 @@ export default class extends Controller {
     }
   }
 
-  setUnavailable() {
+  setUnavailable(message) {
     this.statusTarget.textContent = "";
     if (this.hasUnavailableTarget) {
+      if (this.hasUnavailableMessageTarget && message) {
+        this.unavailableMessageTarget.textContent = message;
+      }
       this.unavailableTarget.classList.remove("d-none");
     }
   }

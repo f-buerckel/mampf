@@ -13,9 +13,6 @@ import { addFeedbackShortcuts, addGeneralShortcuts, removeFeedbackShortcuts, rem
 import { resizeThymeContainer } from "./resizer";
 import { playOnClick, setUpMaxTime, onVideoMetadataLoaded } from "./utility";
 
-// Same turbo:load teardown pattern as thyme_player.js: keyboard listeners are
-// registered on window and must be removed on navigation, otherwise they
-// accumulate across Turbo page swaps.
 let activeShortcutHandlers = null;
 
 function teardownShortcuts() {

@@ -6,6 +6,10 @@ require_relative "search_client/sentence_highlighter"
 class SearchClient
   include Singleton
 
+  QUERY_MAX_LENGTH = 500
+  RATE_LIMIT = 30
+  RATE_LIMIT_PERIOD = 1.minute
+
   class MampfSearchError < StandardError; end
 
   class ServiceUnavailableError < MampfSearchError; end

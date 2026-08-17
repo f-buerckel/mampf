@@ -13,7 +13,7 @@ const DEFAULT_LABELS = {
 };
 
 export class SearchPopup {
-  constructor(mediumId, videoElement, labels = {}) {
+  constructor(mediumId, videoElement, labels = {}, maxQueryLength) {
     this.mediumId = mediumId;
     this.videoElement = videoElement;
     this.labels = { ...DEFAULT_LABELS, ...labels };
@@ -22,6 +22,9 @@ export class SearchPopup {
     this.resultsContainer = null;
     this.isVisible = false;
     this.previousFocus = null;
+    this.abortController = null;
+    this.isSearching = false;
+    this.maxQueryLength = maxQueryLength;
 
     this.createDomElements();
     this.addEventListeners();
@@ -61,6 +64,9 @@ export class SearchPopup {
     this.input.type = "text";
     this.input.className = "thyme-search-input";
     this.input.placeholder = this.labels.placeholder;
+    if (this.maxQueryLength) {
+      this.input.maxLength = this.maxQueryLength;
+    }
 
     inputWrapper.appendChild(this.input);
 
@@ -147,6 +153,7 @@ export class SearchPopup {
   hide() {
     this.isVisible = false;
     this.container.style.display = "none";
+    this.abortController?.abort();
     if (window.thymeAttributes) {
       window.thymeAttributes.lockKeyListeners = this.previousLockState || false;
     }
@@ -162,6 +169,7 @@ export class SearchPopup {
 
   destroy() {
     this.isVisible = false;
+    this.abortController?.abort();
     if (window.thymeAttributes) {
       window.thymeAttributes.lockKeyListeners = this.previousLockState || false;
     }
@@ -175,7 +183,11 @@ export class SearchPopup {
 
   async performSearch() {
     const query = this.input.value.trim();
-    if (!query) return;
+    if (!query || this.isSearching) return;
+
+    this.isSearching = true;
+    this.abortController?.abort();
+    this.abortController = new AbortController();
 
     this.resultsContainer.replaceChildren();
     const loading = document.createElement("div");
@@ -186,7 +198,7 @@ export class SearchPopup {
     try {
       const response = await fetch(
         `/media/${this.mediumId}/search_content?query=${encodeURIComponent(query)}`,
-        { redirect: "manual" },
+        { redirect: "manual", signal: this.abortController.signal },
       );
 
       if (!response.ok || response.redirected) {
@@ -198,11 +210,15 @@ export class SearchPopup {
       this.renderResults(results);
     }
     catch (error) {
+      if (error.name === "AbortError") return;
       this.resultsContainer.replaceChildren();
       const errorElement = document.createElement("div");
       errorElement.className = "thyme-search-error";
       errorElement.textContent = error.message || this.labels.error;
       this.resultsContainer.appendChild(errorElement);
+    }
+    finally {
+      this.isSearching = false;
     }
   }
 

@@ -6,6 +6,7 @@
   <body data-locale="<%= I18n.locale %>"
         data-nometadata="<%= I18n.t('errors.thyme.no_metadata') %>"
         data-badbrowser="<%= I18n.t('errors.thyme.bad_browser') %>"
+        data-thyme-search-max-query-length="<%= SearchClient::QUERY_MAX_LENGTH %>"
         data-thyme-search-labels="<%= {
           title: t('thyme.search.title'),
           placeholder: t('thyme.search.placeholder'),

@@ -252,8 +252,9 @@ $(document).on("turbo:load", function () {
   teardownSearchFeature();
 
   const searchLabels = JSON.parse(document.body.dataset.thymeSearchLabels || "{}");
+  const maxQueryLength = Number(document.body.dataset.thymeSearchMaxQueryLength) || undefined;
   const searchPopup = new SearchPopup(
-    thymeAttributes.mediumId, video, searchLabels,
+    thymeAttributes.mediumId, video, searchLabels, maxQueryLength,
   );
   thymeAttributes.searchPopup = searchPopup;
   activeSearchPopup = searchPopup;

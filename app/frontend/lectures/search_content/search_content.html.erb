@@ -38,6 +38,7 @@
                            placeholder: "Suche in der Veranstaltung...",
                            value: @query,
                            autofocus: true,
+                           maxlength: SearchClient::QUERY_MAX_LENGTH,
                            data: { search_client_status_target: "input" } %>
           <button class="btn btn-primary" type="submit">
             Suchen
@@ -49,7 +50,9 @@
       <div class="alert alert-danger mt-4 text-center d-none"
            data-search-client-status-target="unavailable">
         <i class="bi bi-exclamation-triangle me-2"></i>
-        <%= t('search.mampfsearch_unavailable') %>
+        <span data-search-client-status-target="unavailableMessage">
+          <%= t('search.mampfsearch_unavailable') %>
+        </span>
       </div>
       <div data-search-client-status-target="content"></div>
     </div>

@@ -13,6 +13,14 @@ class LecturesController < ApplicationController
   before_action :check_if_enough_questions, only: [:show_random_quizzes]
   layout "administration"
 
+  rate_limit to: SearchClient::RATE_LIMIT, within: SearchClient::RATE_LIMIT_PERIOD,
+             only: :search_content_results,
+             by: -> { current_user&.id || request.remote_ip },
+             with: lambda {
+               render json: { error: I18n.t("search.too_many_requests") },
+                      status: :too_many_requests
+             }
+
   def current_ability
     @current_ability ||= LectureAbility.new(current_user)
   end
@@ -320,9 +328,14 @@ class LecturesController < ApplicationController
 
   # Returns JSON search results, called by the stimulus controller via fetch(url).
   def search_content_results
-    query = params[:search]
+    query = params[:search].to_s.strip
 
     return render(json: { results: [] }) if query.blank?
+
+    if query.length > SearchClient::QUERY_MAX_LENGTH
+      return render(json: { error: I18n.t("search.query_too_long") },
+                    status: :unprocessable_content)
+    end
 
     begin
       search_client = SearchClient.instance

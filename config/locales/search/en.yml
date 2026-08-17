@@ -8,6 +8,8 @@ en:
       your %{profile}.
     settings: 'profile settings'
     mampfsearch_unavailable: 'MampfSearch is currently not available.'
+    too_many_requests: 'Too many search requests. Please try again later.'
+    query_too_long: 'Your search query is too long.'
     mampfsearch_searching: 'Searching …'
     results_heading: 'Results for: %{query}'
     no_results: 'No results found.'

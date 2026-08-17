@@ -9,6 +9,8 @@ de:
       Datenbank nicht berücksichtigt.
     settings: 'Profileinstellungen'
     mampfsearch_unavailable: 'MampfSearch ist derzeit nicht verfügbar.'
+    too_many_requests: 'Zu viele Suchanfragen. Bitte versuche es später erneut.'
+    query_too_long: 'Deine Suchanfrage ist zu lang.'
     mampfsearch_searching: 'Suche läuft …'
     results_heading: 'Ergebnisse für: %{query}'
     no_results: 'Keine Ergebnisse gefunden.'
