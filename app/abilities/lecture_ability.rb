@@ -26,6 +26,8 @@ class LectureAbility
     can :show, Lecture
 
     can :search, Lecture
+    can :search_content, Lecture
+    can :search_content_results, Lecture
 
     can [:show_announcements, :organizational, :show_random_quizzes,
          :display_course], Lecture do |lecture|

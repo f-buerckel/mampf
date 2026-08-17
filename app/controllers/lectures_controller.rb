@@ -5,7 +5,7 @@ class LecturesController < ApplicationController
   before_action :set_lecture, except: [:new, :create, :search]
   before_action :set_lecture_cookie, only: [:show, :outline, :organizational,
                                             :show_announcements]
-  authorize_resource except: [:new, :create, :search, :outline, :search_content]
+  authorize_resource except: [:new, :create, :search, :outline]
   before_action :check_for_consent
   before_action :check_for_subscribe, only: [:outline, :search_content]
   before_action :set_view_locale, only: [:edit, :show, :outline, :subscribe_page,
@@ -312,15 +312,14 @@ class LecturesController < ApplicationController
   end
 
   def search_content
-    authorize! :show, @lecture
     @query = params[:search]
 
     render template: "lectures/search_content/search_content",
            layout: turbo_frame_request? ? "turbo_frame" : "application"
   end
 
+  # Returns JSON search results, called by the stimulus controller via fetch(url).
   def search_content_results
-    authorize! :show, @lecture
     query = params[:search]
 
     return render(json: { results: [] }) if query.blank?
