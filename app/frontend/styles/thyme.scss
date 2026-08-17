@@ -103,6 +103,18 @@
   cursor: pointer;
 }
 
+#subtitle-toggle {
+  padding: 0;
+  border: none;
+  background: transparent;
+}
+
+#subtitle-toggle:focus-visible {
+  outline: 2px solid #282828ff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 #previous-chapter {
   margin-left: 10px;
 }

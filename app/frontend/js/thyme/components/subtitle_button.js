@@ -22,57 +22,68 @@ export class SubtitleButton extends Component {
     // Use custom subtitle container
     subtitleTrack.mode = "hidden";
 
-    // Initialize state
-    let subtitlesEnabled = false;
-    element.dataset.status = "false";
-    element.style.color = "";
-
     let container = document.getElementById("custom-subtitle-container");
     if (!container) {
       container = document.createElement("div");
       container.id = "custom-subtitle-container";
       container.className = "thyme-custom-subtitles";
+      container.setAttribute("role", "status");
       container.setAttribute("aria-live", "polite");
       container.setAttribute("aria-atomic", "true");
       document.getElementById("hypervideo-container").appendChild(container);
     }
 
-    const updateSubtitles = () => {
-      container.replaceChildren();
+    let subtitlesEnabled = false;
+    let lastText = "";
 
+    const updateSubtitles = () => {
       if (!subtitlesEnabled) {
+        if (lastText !== "") {
+          lastText = "";
+          container.replaceChildren();
+        }
         return;
       }
 
+      let text = "";
       if (subtitleTrack.activeCues && subtitleTrack.activeCues.length > 0) {
-        let text = "";
         for (let i = 0; i < subtitleTrack.activeCues.length; i++) {
           text += subtitleTrack.activeCues[i].text + "\n";
         }
-        const span = document.createElement("span");
-        span.textContent = text.trim();
-        container.appendChild(span);
       }
+      text = text.trim();
+
+      if (text === lastText) {
+        return;
+      }
+      lastText = text;
+
+      container.replaceChildren();
+      if (!text) {
+        return;
+      }
+
+      const span = document.createElement("span");
+      span.textContent = text;
+      container.appendChild(span);
     };
+
+    const setEnabled = (enabled) => {
+      element.classList.toggle("bi-badge-cc-fill", enabled);
+      element.classList.toggle("bi-badge-cc", !enabled);
+      element.style.color = enabled ? "#282828ff" : "";
+      element.setAttribute("aria-pressed", String(enabled));
+    };
+
+    element.addEventListener("click", function () {
+      subtitlesEnabled = !subtitlesEnabled;
+      setEnabled(subtitlesEnabled);
+      updateSubtitles();
+    });
 
     subtitleTrack.addEventListener("cuechange", updateSubtitles);
     video.addEventListener("timeupdate", updateSubtitles);
 
-    element.addEventListener("click", function () {
-      subtitlesEnabled = !subtitlesEnabled;
-
-      if (subtitlesEnabled) {
-        element.classList.remove("bi-badge-cc");
-        element.classList.add("bi-badge-cc-fill");
-        element.style.color = "#282828ff";
-      }
-      else {
-        element.classList.remove("bi-badge-cc-fill");
-        element.classList.add("bi-badge-cc");
-        element.style.color = "";
-      }
-
-      updateSubtitles();
-    });
+    setEnabled(false);
   }
 }
