@@ -108,6 +108,20 @@ export class SearchPopup {
     document.body.focus();
   }
 
+  destroy() {
+    this.isVisible = false;
+    // restore key listeners in case the popup is destroyed while visible
+    if (window.thymeAttributes) {
+      window.thymeAttributes.lockKeyListeners = this.previousLockState || false;
+    }
+    if (this.container) {
+      this.container.remove();
+      this.container = null;
+    }
+    this.input = null;
+    this.resultsContainer = null;
+  }
+
   async performSearch() {
     const query = this.input.value.trim();
     if (!query) return;

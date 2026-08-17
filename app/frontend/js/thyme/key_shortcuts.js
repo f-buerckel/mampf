@@ -12,7 +12,7 @@ export const SEARCH_SHORTCUT = {
 export function addGeneralShortcuts() {
   const video = document.getElementById("video");
 
-  window.addEventListener("keydown", function (evt) {
+  const handler = function (evt) {
     if (thymeAttributes.lockKeyListeners) {
       return;
     }
@@ -43,14 +43,21 @@ export function addGeneralShortcuts() {
     else if (key === "PageDown") {
       video.volume = Math.max(video.volume - 0.1, 0);
     }
-  });
+  };
+
+  window.addEventListener("keydown", handler);
+  return handler;
+}
+
+export function removeGeneralShortcuts(handler) {
+  window.removeEventListener("keydown", handler);
 }
 
 /**
  * Adds Thyme-player specific shortcuts.
  */
 export function addPlayerShortcuts() {
-  window.addEventListener("keydown", function (evt) {
+  const handler = function (evt) {
     if (thymeAttributes.lockKeyListeners) {
       return;
     }
@@ -78,14 +85,21 @@ export function addPlayerShortcuts() {
     else if (key === "d") {
       $("#annotation-next-button").trigger("click");
     }
-  });
+  };
+
+  window.addEventListener("keydown", handler);
+  return handler;
+}
+
+export function removePlayerShortcuts(handler) {
+  window.removeEventListener("keydown", handler);
 }
 
 /**
  * Adds Thyme feedback specific shortcuts.
  */
 export function addFeedbackShortcuts() {
-  window.addEventListener("keydown", function (evt) {
+  const handler = function (evt) {
     if (thymeAttributes.lockKeyListeners || thymeAttributes.disableAnnotationKeyListeners) {
       return;
     }
@@ -111,14 +125,21 @@ export function addFeedbackShortcuts() {
     else if (key === "d") {
       $("#annotation-next-button").trigger("click");
     }
-  });
+  };
+
+  window.addEventListener("keydown", handler);
+  return handler;
+}
+
+export function removeFeedbackShortcuts(handler) {
+  window.removeEventListener("keydown", handler);
 }
 
 /**
  * Adds shortcuts for the search popup component.
  */
 export function addSearchShortcuts(searchPopup) {
-  window.addEventListener("keydown", function (evt) {
+  const handler = function (evt) {
     if (thymeAttributes.lockKeyListeners && !searchPopup.isVisible) {
       return;
     }
@@ -133,5 +154,12 @@ export function addSearchShortcuts(searchPopup) {
       evt.preventDefault(); // prevent any browser default
       searchPopup.toggle();
     }
-  });
+  };
+
+  window.addEventListener("keydown", handler);
+  return handler;
+}
+
+export function removeSearchShortcuts(handler) {
+  window.removeEventListener("keydown", handler);
 }

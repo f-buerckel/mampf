@@ -9,9 +9,22 @@ import { SeekBar } from "./components/seek_bar";
 import { TimeButton } from "./components/time_button";
 import { VolumeBar } from "./components/volume_bar";
 import { Heatmap } from "./heatmap";
-import { addFeedbackShortcuts, addGeneralShortcuts } from "./key_shortcuts";
+import { addFeedbackShortcuts, addGeneralShortcuts, removeFeedbackShortcuts, removeGeneralShortcuts } from "./key_shortcuts";
 import { resizeThymeContainer } from "./resizer";
 import { playOnClick, setUpMaxTime, onVideoMetadataLoaded } from "./utility";
+
+// Same turbo:load teardown pattern as thyme_player.js: keyboard listeners are
+// registered on window and must be removed on navigation, otherwise they
+// accumulate across Turbo page swaps.
+let activeShortcutHandlers = null;
+
+function teardownShortcuts() {
+  if (activeShortcutHandlers) {
+    removeGeneralShortcuts(activeShortcutHandlers.general);
+    removeFeedbackShortcuts(activeShortcutHandlers.feedback);
+    activeShortcutHandlers = null;
+  }
+}
 
 $(document).on("turbo:load", function () {
   /*
@@ -20,6 +33,7 @@ $(document).on("turbo:load", function () {
   // exit script if the current page has no thyme player
   const thymeContainer = document.getElementById("thyme-feedback-container");
   if (!thymeContainer) {
+    teardownShortcuts();
     return;
   }
 
@@ -106,8 +120,11 @@ $(document).on("turbo:load", function () {
   /*
     KEYBOARD SHORTCUTS
    */
-  addGeneralShortcuts();
-  addFeedbackShortcuts();
+  teardownShortcuts();
+  activeShortcutHandlers = {
+    general: addGeneralShortcuts(),
+    feedback: addFeedbackShortcuts(),
+  };
 
   /*
     MISC
@@ -126,4 +143,9 @@ $(document).on("turbo:load", function () {
 
   $("#video").width("82%");
   resizeContainer();
+});
+
+// Remove the keyboard listeners when Turbo caches the page on navigation.
+$(document).on("turbo:before-cache", function () {
+  teardownShortcuts();
 });

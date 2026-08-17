@@ -19,11 +19,35 @@ import { VolumeBar } from "./components/volume_bar";
 import { SubtitleButton } from "./components/subtitle_button";
 import { ControlBarHider } from "./control_bar_hider";
 import { DisplayManager } from "./display_manager";
-import { addGeneralShortcuts, addPlayerShortcuts, addSearchShortcuts } from "./key_shortcuts";
+import { addGeneralShortcuts, addPlayerShortcuts, addSearchShortcuts, removeGeneralShortcuts, removePlayerShortcuts, removeSearchShortcuts } from "./key_shortcuts";
 import { MetadataManager } from "./metadata_manager";
 import { resizeThymeContainer } from "./resizer";
 import { onVideoMetadataLoaded, playOnClick, setUpMaxTime } from "./utility";
 import { SearchPopup } from "./components/search_popup";
+
+// Track the currently active search feature instance so it can be torn down
+// on navigation. Turbo keeps the JS runtime alive across page swaps, so every
+// turbo:load re-creates the popup and keyboard listeners; without teardown the
+// old ones would accumulate (see review finding 14).
+let activeShortcutHandlers = null;
+let activeSearchPopup = null;
+
+function teardownSearchFeature() {
+  if (activeShortcutHandlers) {
+    removeGeneralShortcuts(activeShortcutHandlers.general);
+    removePlayerShortcuts(activeShortcutHandlers.player);
+    removeSearchShortcuts(activeShortcutHandlers.search);
+    activeShortcutHandlers = null;
+  }
+  if (activeSearchPopup) {
+    activeSearchPopup.destroy();
+    activeSearchPopup = null;
+  }
+  if (window.thymeAttributes && thymeAttributes.searchPopup) {
+    thymeAttributes.searchPopup = null;
+  }
+  document.querySelectorAll(".thyme-search-popup").forEach((element) => element.remove());
+}
 
 $(document).on("turbo:load", function () {
   /*
@@ -32,6 +56,7 @@ $(document).on("turbo:load", function () {
   // exit script if the current page has no thyme player
   const thymeContainer = document.getElementById("thyme-container");
   if (!thymeContainer) {
+    teardownSearchFeature();
     return;
   }
 
@@ -224,12 +249,17 @@ $(document).on("turbo:load", function () {
   /*
     KEYBOARD SHORTCUTS
    */
+  teardownSearchFeature();
+
   const searchPopup = new SearchPopup(thymeAttributes.mediumId, video);
   thymeAttributes.searchPopup = searchPopup;
+  activeSearchPopup = searchPopup;
 
-  addGeneralShortcuts();
-  addPlayerShortcuts();
-  addSearchShortcuts(searchPopup);
+  activeShortcutHandlers = {
+    general: addGeneralShortcuts(),
+    player: addPlayerShortcuts(),
+    search: addSearchShortcuts(searchPopup),
+  };
 
   /*
     MISC
@@ -245,4 +275,11 @@ $(document).on("turbo:load", function () {
     resizeContainer();
     return;
   }
+});
+
+// Turbo fires this right before it caches the current page on navigation.
+// Remove the popup and keyboard listeners so they do not leak into the next
+// page or into the cached snapshot restored by the back button.
+$(document).on("turbo:before-cache", function () {
+  teardownSearchFeature();
 });
