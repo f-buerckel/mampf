@@ -362,6 +362,37 @@ RSpec.describe("Media", type: :request) do
 
       expect(response).to have_http_status(:forbidden)
     end
+
+    it "accepts a valid vtt upload with a valid token" do
+      token = TranscriptionToken.generate(
+        medium_id: medium.id,
+        purpose: :transcript,
+        ttl: 5.minutes
+      )
+      file = Rack::Test::UploadedFile.new(File.join(SPEC_FILES, "toc.vtt"),
+                                          "text/vtt")
+
+      post add_transcript_path(medium), params: { token: token, transcript: file }
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "rejects an upload that is not a valid vtt" do
+      token = TranscriptionToken.generate(
+        medium_id: medium.id,
+        purpose: :transcript,
+        ttl: 5.minutes
+      )
+      file = Rack::Test::UploadedFile.new(File.join(SPEC_FILES, "manuscript.pdf"),
+                                          "text/vtt")
+
+      post add_transcript_path(medium), params: { token: token, transcript: file }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(JSON.parse(response.body)["errors"]).to include(
+        I18n.t("submission.invalid_transcript")
+      )
+    end
   end
 
   describe "GET /media/:id/download/:sort" do
