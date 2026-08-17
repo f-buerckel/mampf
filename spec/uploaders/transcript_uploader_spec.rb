@@ -46,27 +46,9 @@ RSpec.describe(TranscriptUploader) do
 
     expect(attacher.errors).to include(
       I18n.t("submission.wrong_mime_type",
-             mime_type: "text/plain",
+             mime_type: "application/octet-stream",
              accepted_mime_types: "text/vtt")
     )
-  ensure
-    file&.close!
-  end
-
-  it "rejects content without a WEBVTT header" do
-    file = tempfile("00:00:00.000 --> 00:00:01.000\ntest\n")
-    attacher = attacher_for(file)
-
-    expect(attacher.errors).to include(I18n.t("submission.invalid_transcript"))
-  ensure
-    file&.close!
-  end
-
-  it "rejects malformed cue timings" do
-    file = tempfile("WEBVTT\n\n00:00:11.12 --> 00:00:42.771\ntest\n")
-    attacher = attacher_for(file)
-
-    expect(attacher.errors).to include(I18n.t("submission.invalid_transcript"))
   ensure
     file&.close!
   end
@@ -84,5 +66,42 @@ RSpec.describe(TranscriptUploader) do
     )
   ensure
     file&.close!
+  end
+
+  describe ".structure_error" do
+    it "returns nil for a valid vtt file" do
+      file = fixture_file("toc.vtt")
+
+      expect(described_class.structure_error(file)).to be_nil
+    ensure
+      file&.close
+    end
+
+    it "rejects content without a WEBVTT header" do
+      file = tempfile("00:00:00.000 --> 00:00:01.000\ntest\n")
+
+      expect(described_class.structure_error(file))
+        .to eq(I18n.t("submission.invalid_transcript"))
+    ensure
+      file&.close!
+    end
+
+    it "rejects content that is not valid UTF-8" do
+      file = tempfile("WEBVTT\n\n\xFF\xFE test\n".b)
+
+      expect(described_class.structure_error(file))
+        .to eq(I18n.t("submission.invalid_transcript"))
+    ensure
+      file&.close!
+    end
+
+    it "rejects malformed cue timings" do
+      file = tempfile("WEBVTT\n\n00:00:11.12 --> 00:00:42.771\ntest\n")
+
+      expect(described_class.structure_error(file))
+        .to eq(I18n.t("submission.invalid_transcript"))
+    ensure
+      file&.close!
+    end
   end
 end

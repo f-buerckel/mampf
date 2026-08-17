@@ -390,7 +390,7 @@ RSpec.describe("Media", type: :request) do
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(JSON.parse(response.body)["errors"]).to include(
-        I18n.t("submission.invalid_transcript")
+        "Transcript #{I18n.t("submission.invalid_transcript")}"
       )
     end
   end
