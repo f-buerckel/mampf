@@ -449,6 +449,15 @@ figure {
   line-height: 1;
   color: rgba(255, 255, 255, 0.7);
   transition: color 0.2s, transform 0.2s;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.thyme-search-close:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .thyme-search-close:hover {
@@ -502,6 +511,16 @@ figure {
   display: flex;
   flex-direction: column;
   transition: all 0.2s ease;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+}
+
+.thyme-search-result-item:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
 }
 
 .thyme-search-result-item:hover {
@@ -578,7 +597,7 @@ figure {
   padding: 4px 10px;
   border-radius: 6px;
   line-height: 1.5;
-  font-size: 2.5rem;
+  font-size: clamp(1rem, 4vw, 2.5rem);
   white-space: pre-wrap;
   display: inline-block;
   max-width: 90%;

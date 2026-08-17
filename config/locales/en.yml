@@ -2625,6 +2625,15 @@ en:
     back_to: 'back to '
     toggle_subtitles: 'Toggle subtitles'
     transcript: 'Transcript'
+    search:
+      title: 'Search in media'
+      placeholder: 'Search for terms… (press Enter to search)'
+      searching: 'Searching…'
+      no_results: 'No results found.'
+      error: 'Error loading results. Please try again.'
+      close: 'Close search'
+      relevance: 'Relevance: %{score}%'
+      play_from: 'Play video from %{time}'
   thyme_editor:
     add_item: 'Add Item to Table of Contents'
     add_referral: 'Add Reference'

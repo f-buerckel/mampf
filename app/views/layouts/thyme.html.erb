@@ -5,7 +5,17 @@
   </head>
   <body data-locale="<%= I18n.locale %>"
         data-nometadata="<%= I18n.t('errors.thyme.no_metadata') %>"
-        data-badbrowser="<%= I18n.t('errors.thyme.bad_browser') %>">
+        data-badbrowser="<%= I18n.t('errors.thyme.bad_browser') %>"
+        data-thyme-search-labels="<%= {
+          title: t('thyme.search.title'),
+          placeholder: t('thyme.search.placeholder'),
+          searching: t('thyme.search.searching'),
+          no_results: t('thyme.search.no_results'),
+          error: t('thyme.search.error'),
+          close: t('thyme.search.close'),
+          relevance: t('thyme.search.relevance'),
+          play_from: t('thyme.search.play_from')
+        }.to_json %>">
     <%= yield %>
   </body>
 </html>

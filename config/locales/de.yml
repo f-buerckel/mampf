@@ -2796,6 +2796,15 @@ de:
     back_to: 'zurück zu '
     toggle_subtitles: 'Untertitel ein-/ausblenden'
     transcript: 'Transkript'
+    search:
+      title: 'Im Medium suchen'
+      placeholder: 'Suchbegriffe eingeben … (Enter zum Suchen)'
+      searching: 'Suche läuft …'
+      no_results: 'Keine Ergebnisse gefunden.'
+      error: 'Fehler beim Laden der Ergebnisse. Bitte versuche es erneut.'
+      close: 'Suche schließen'
+      relevance: 'Relevanz: %{score}%'
+      play_from: 'Video abspielen ab %{time}'
   thyme_editor:
     add_item: 'Eintrag zum Inhaltsverzeichnis hinzufügen'
     add_referral: 'Referenz hinzufügen'

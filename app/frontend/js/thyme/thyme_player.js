@@ -251,7 +251,10 @@ $(document).on("turbo:load", function () {
    */
   teardownSearchFeature();
 
-  const searchPopup = new SearchPopup(thymeAttributes.mediumId, video);
+  const searchLabels = JSON.parse(document.body.dataset.thymeSearchLabels || "{}");
+  const searchPopup = new SearchPopup(
+    thymeAttributes.mediumId, video, searchLabels,
+  );
   thymeAttributes.searchPopup = searchPopup;
   activeSearchPopup = searchPopup;
 
