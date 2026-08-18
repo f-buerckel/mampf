@@ -1,6 +1,6 @@
 class TranscriptionToken
   ALGORITHM = "SHA256".freeze
-  VIDEO_TTL = 30.minutes
+  VIDEO_TTL = 5.minutes
   TRANSCRIPT_TTL = 1.hour
   PURPOSES = ["video", "transcript"].freeze
 

@@ -750,13 +750,21 @@ class MediaController < ApplicationController
     end
 
     def verify_transcription_token!(purpose:)
-      payload = TranscriptionToken.verify!(params[:token], purpose: purpose)
+      token = transcription_bearer_token || params[:token]
+      payload = TranscriptionToken.verify!(token, purpose: purpose)
       return true if payload.fetch("medium_id").to_i == @medium.id
 
       raise(TranscriptionToken::InvalidTokenError)
     rescue TranscriptionToken::InvalidTokenError
       head :forbidden
       false
+    end
+
+    def transcription_bearer_token
+      header = request.headers["Authorization"].to_s
+      return nil unless header.start_with?("Bearer ")
+
+      header.delete_prefix("Bearer ").strip.presence
     end
 
     def medium_params

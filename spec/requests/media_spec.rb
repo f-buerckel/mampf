@@ -377,6 +377,22 @@ RSpec.describe("Media", type: :request) do
       expect(response).to have_http_status(:ok)
     end
 
+    it "accepts a valid vtt upload with an Authorization Bearer header" do
+      token = TranscriptionToken.generate(
+        medium_id: medium.id,
+        purpose: :transcript,
+        ttl: 5.minutes
+      )
+      file = Rack::Test::UploadedFile.new(File.join(SPEC_FILES, "toc.vtt"),
+                                          "text/vtt")
+
+      post add_transcript_path(medium),
+           params: { transcript: file },
+           headers: { "Authorization" => "Bearer #{token}" }
+
+      expect(response).to have_http_status(:ok)
+    end
+
     it "rejects an upload that is not a valid vtt" do
       token = TranscriptionToken.generate(
         medium_id: medium.id,
