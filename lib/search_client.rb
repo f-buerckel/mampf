@@ -43,7 +43,7 @@ class SearchClient
 
     payload[:lesson_rails_id] = lesson_rails_id if lesson_rails_id.present?
 
-    perform_request do |client|
+    perform_request(scope: "/lesson/ingest") do |client|
       client.post("/lesson/ingest", params: payload)
     end
   end
@@ -67,7 +67,7 @@ class SearchClient
       filters: filters
     }
 
-    results = perform_request do |client|
+    results = perform_request(scope: "/lesson/search") do |client|
       client.post("/lesson/search", json: payload)
     end
 
@@ -75,7 +75,7 @@ class SearchClient
   end
 
   def score_sentences(query, chunk_ids)
-    perform_request do |client|
+    perform_request(scope: "/lesson/score-sentences") do |client|
       client.post("/lesson/score-sentences", params: { query: query }, json: chunk_ids)
     end
   end
@@ -112,13 +112,21 @@ class SearchClient
 
   private
 
-    def perform_request(&)
+    def perform_request(scope: nil)
       unless @pool
         raise(ServiceUnavailableError,
               "MampfSearch is not configured (MAMPFSEARCH_BASE_URL is missing)")
       end
 
-      response = @pool.with(&)
+      response = @pool.with do |client|
+        request_client = if scope
+          token = SearchApiToken.generate(scope: scope)
+          client.headers(authorization: "Bearer #{token}")
+        else
+          client
+        end
+        yield(request_client)
+      end
       handle_response(response)
     rescue HTTP::TimeoutError
       raise(TimeoutError, "The search took too long to complete.")

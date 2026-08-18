@@ -117,6 +117,92 @@ RSpec.describe(SearchClient) do
     end
   end
 
+  describe "authentication headers" do
+    let(:pool) { client.instance_variable_get(:@pool) }
+    let(:secret) { "test-secret-key-at-least-32-characters-long" }
+
+    around do |example|
+      original = ENV["MAMPFSEARCH_API_SECRET"]
+      ENV["MAMPFSEARCH_API_SECRET"] = secret
+      example.run
+    ensure
+      ENV["MAMPFSEARCH_API_SECRET"] = original
+    end
+
+    def fake_response(code, body)
+      status = double("status", code: code)
+      double("response", status: status, body: double("body", to_s: body))
+    end
+
+    it "attaches Authorization header with /lesson/search scope for search_media" do
+      fake_http = double("http")
+      expect(fake_http).to receive(:headers) do |headers|
+        auth = headers[:authorization]
+        expect(auth).to start_with("Bearer ")
+        token = auth.delete_prefix("Bearer ")
+        payload = SearchApiToken.verify!(token, scope: "/lesson/search")
+        expect(payload["scope"]).to eq("/lesson/search")
+        fake_http
+      end
+      expect(fake_http).to receive(:post).with("/lesson/search", json: anything)
+        .and_return(fake_response(200, "[]"))
+
+      allow(pool).to receive(:with) { |&block| block.call(fake_http) }
+
+      client.search_media("query")
+    end
+
+    it "attaches Authorization header with /lesson/ingest scope for transcribe_lesson" do
+      fake_http = double("http")
+      expect(fake_http).to receive(:headers) do |headers|
+        auth = headers[:authorization]
+        expect(auth).to start_with("Bearer ")
+        token = auth.delete_prefix("Bearer ")
+        payload = SearchApiToken.verify!(token, scope: "/lesson/ingest")
+        expect(payload["scope"]).to eq("/lesson/ingest")
+        fake_http
+      end
+      expect(fake_http).to receive(:post).with("/lesson/ingest", params: anything)
+        .and_return(fake_response(200, '{"status":"queued"}'))
+
+      allow(pool).to receive(:with) { |&block| block.call(fake_http) }
+
+      client.transcribe_lesson(
+        media_rails_id: 1, lecture_rails_id: 2, course_rails_id: 3,
+        video_url: "http://video.url", transcript_upload_url: "http://upload.url"
+      )
+    end
+
+    it "attaches Authorization header with /lesson/score-sentences scope for score_sentences" do
+      fake_http = double("http")
+      expect(fake_http).to receive(:headers) do |headers|
+        auth = headers[:authorization]
+        expect(auth).to start_with("Bearer ")
+        token = auth.delete_prefix("Bearer ")
+        payload = SearchApiToken.verify!(token, scope: "/lesson/score-sentences")
+        expect(payload["scope"]).to eq("/lesson/score-sentences")
+        fake_http
+      end
+      expect(fake_http).to receive(:post).with("/lesson/score-sentences", params: anything, json: anything)
+        .and_return(fake_response(200, "[]"))
+
+      allow(pool).to receive(:with) { |&block| block.call(fake_http) }
+
+      client.score_sentences("query", [1, 2])
+    end
+
+    it "does not attach Authorization header for health" do
+      fake_http = double("http")
+      expect(fake_http).not_to receive(:headers)
+      expect(fake_http).to receive(:get).with("/ready")
+        .and_return(fake_response(200, '{"status":"ok"}'))
+
+      allow(pool).to receive(:with) { |&block| block.call(fake_http) }
+
+      client.health
+    end
+  end
+
   describe "when not configured" do
     let(:unconfigured) { described_class.send(:new, base_url: "") }
 
