@@ -336,14 +336,16 @@ class MediaController < ApplicationController
     return unless verify_transcription_token!(purpose: :transcript)
 
     if params[:transcript].present?
+      old_transcript = @medium.transcript
       @medium.transcript = params[:transcript]
       if @medium.save
+        old_transcript&.delete
         head :ok
       else
         render json: { errors: @medium.errors.full_messages }, status: :unprocessable_content
       end
     else
-      head :bad_request
+      @medium.transcript.present? ? head(:ok) : head(:bad_request)
     end
   end
 
