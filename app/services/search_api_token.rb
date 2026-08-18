@@ -1,12 +1,11 @@
 class SearchApiToken
   PURPOSE = "mampfsearch_api".freeze
   ALGORITHM = "SHA256".freeze
-  DEFAULT_TTL = 60.seconds
 
   class InvalidTokenError < StandardError; end
 
   class << self
-    def generate(scope:, ttl: DEFAULT_TTL)
+    def generate(scope:, ttl: default_ttl)
       secret = ENV["MAMPFSEARCH_API_SECRET"]
       if secret.blank?
         raise(SearchClient::ServiceUnavailableError,
@@ -50,6 +49,10 @@ class SearchApiToken
     end
 
     private
+
+      def default_ttl
+        ENV.fetch("MAMPFSEARCH_API_TOKEN_TTL", 60).to_i.seconds
+      end
 
       def signature_for(encoded_payload, secret)
         OpenSSL::HMAC.hexdigest(ALGORITHM, secret, encoded_payload)
