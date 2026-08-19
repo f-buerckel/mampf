@@ -54,6 +54,7 @@ export default class extends Controller {
 
     const classList = icon.classList;
     const lastClass = classList[classList.length - 1];
+    if (lastClass === "bi-search") return;
     if (!lastClass.endsWith("-fill")) {
       classList.remove(lastClass);
       classList.add(lastClass + "-fill");
