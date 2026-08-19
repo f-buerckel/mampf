@@ -331,8 +331,7 @@ class MediaController < ApplicationController
   end
 
   def add_transcript
-    # TODO(mTLS): require and verify the MampfSearch client certificate here
-    # once service-to-service TLS is enabled.
+    return unless verify_search_api_token!
     return unless verify_transcription_token!(purpose: :transcript)
 
     if params[:transcript].present?
@@ -423,8 +422,7 @@ class MediaController < ApplicationController
   end
 
   def transcription_stream_video
-    # TODO(mTLS): require and verify the MampfSearch client certificate here
-    # once service-to-service TLS is enabled.
+    return unless verify_search_api_token!
     return unless verify_transcription_token!(purpose: :video)
     return head :not_found if @medium.video.nil?
 
@@ -747,6 +745,21 @@ class MediaController < ApplicationController
 
     def transcription_url(path, token)
       "#{request.base_url}#{path}?token=#{ERB::Util.url_encode(token)}"
+    end
+
+    def verify_search_api_token!
+      auth_header = request.authorization
+      if auth_header.blank? || !auth_header.start_with?("Bearer ")
+        head :unauthorized
+        return false
+      end
+
+      token = auth_header.delete_prefix("Bearer ").strip
+      SearchApiToken.verify!(token, scope: request.path)
+      true
+    rescue SearchApiToken::InvalidTokenError, SearchClient::ServiceUnavailableError
+      head :unauthorized
+      false
     end
 
     def verify_transcription_token!(purpose:)
