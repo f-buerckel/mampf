@@ -24,6 +24,7 @@ export default class extends Controller {
   };
 
   connect() {
+    if (document.documentElement.hasAttribute("data-turbo-preview")) return;
     if (!this.hasFormTarget || !this.hasInputTarget) return;
 
     this.abortController = null;
