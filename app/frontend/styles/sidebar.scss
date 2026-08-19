@@ -66,6 +66,12 @@
     }
 }
 
-.nav-link.disabled a {
-    color: #cacaca;
+.nav-link.disabled {
+    pointer-events: auto;
+    cursor: not-allowed;
+
+    a {
+        color: #cacaca;
+        pointer-events: none;
+    }
 }
