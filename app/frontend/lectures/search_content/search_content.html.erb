@@ -30,6 +30,7 @@
          }.to_json %>">
       <%= form_with url: lecture_search_content_results_path(@lecture),
                     method: :get,
+                    local: true,
                     data: { turbo: false,
                             search_client_status_target: "form" } do |f| %>
         <div class="input-group input-group-lg shadow-sm">

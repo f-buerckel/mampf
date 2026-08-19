@@ -46,6 +46,7 @@ export default class extends Controller {
 
   handleSubmit(event) {
     event.preventDefault();
+    event.stopPropagation();
     this.load();
   }
 
