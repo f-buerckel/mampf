@@ -377,4 +377,28 @@ RSpec.describe(Medium, type: :model) do
       expect(FactoryBot.build(:medium).editors_with_inheritance).to eq([])
     end
   end
+
+  describe "deletion and video detachment callbacks" do
+    it "enqueues MampfsearchDeleteJob on destroy" do
+      medium = FactoryBot.create(:valid_medium)
+      expect(MampfsearchDeleteJob).to receive(:perform_later).with(medium.id)
+      medium.destroy
+    end
+
+    it "enqueues MampfsearchDeleteJob and clears transcript when video is detached" do
+      medium = FactoryBot.create(:valid_medium, :with_video)
+      medium.update_column(:transcript_data, "{\"id\":\"test.vtt\",\"storage\":\"store\",\"metadata\":{}}")
+      medium.reload
+
+      expect(MampfsearchDeleteJob).to receive(:perform_later).with(medium.id)
+      medium.update(video: nil)
+
+      expect(medium.reload.transcript_data).to be_nil
+    end
+
+
+
+  end
 end
+
+

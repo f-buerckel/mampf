@@ -191,6 +191,42 @@ RSpec.describe(SearchClient) do
       client.score_sentences("query", [1, 2])
     end
 
+    it "attaches Authorization header with /lesson/media/:id scope for delete_media" do
+      fake_http = double("http")
+      expect(fake_http).to receive(:headers) do |headers|
+        auth = headers[:authorization]
+        expect(auth).to start_with("Bearer ")
+        token = auth.delete_prefix("Bearer ")
+        payload = SearchApiToken.verify!(token, scope: "/lesson/media/42")
+        expect(payload["scope"]).to eq("/lesson/media/42")
+        fake_http
+      end
+      expect(fake_http).to receive(:delete).with("/lesson/media/42")
+        .and_return(fake_response(200, '{"status":"deleted","media_rails_id":42}'))
+
+      allow(pool).to receive(:with) { |&block| block.call(fake_http) }
+
+      client.delete_media(42)
+    end
+
+    it "attaches Authorization header with /lesson/list scope for list_media_rails_ids" do
+      fake_http = double("http")
+      expect(fake_http).to receive(:headers) do |headers|
+        auth = headers[:authorization]
+        expect(auth).to start_with("Bearer ")
+        token = auth.delete_prefix("Bearer ")
+        payload = SearchApiToken.verify!(token, scope: "/lesson/list")
+        expect(payload["scope"]).to eq("/lesson/list")
+        fake_http
+      end
+      expect(fake_http).to receive(:post).with("/lesson/list")
+        .and_return(fake_response(200, '{"media_rails_ids":[1,2,3]}'))
+
+      allow(pool).to receive(:with) { |&block| block.call(fake_http) }
+
+      expect(client.list_media_rails_ids).to eq([1, 2, 3])
+    end
+
     it "does not attach Authorization header for health" do
       fake_http = double("http")
       expect(fake_http).not_to receive(:headers)
@@ -201,6 +237,7 @@ RSpec.describe(SearchClient) do
 
       client.health
     end
+
   end
 
   describe "when not configured" do

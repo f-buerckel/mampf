@@ -134,6 +134,11 @@ class Medium < ApplicationRecord
   after_create :create_self_item
   # if medium is a question or remark, delete all quiz vertices that refer to it
   before_destroy :delete_vertices
+  # handle video attachment detachment or replacement
+  before_save :handle_video_attachment_change
+  # delete the medium's search index entries from MampfSearch on destroy or video detachment
+  after_destroy_commit :purge_from_mampfsearch
+  after_update_commit :purge_from_mampfsearch_if_video_detached
   # some information about media are cached
   # to find out whether the cache is out of date, always touch'em after saving
   after_save :touch_teachable
@@ -1115,4 +1120,29 @@ class Medium < ApplicationRecord
 
       "unpublished"
     end
+
+    def handle_video_attachment_change
+      if will_save_change_to_video_data?
+        if video.blank?
+          @video_detached_to_purge = true
+          self.transcript = nil
+          self.transcript_data = nil
+        elsif transcript.present? || transcript_data.present?
+          self.transcript = nil
+          self.transcript_data = nil
+        end
+      end
+    end
+
+    def purge_from_mampfsearch
+      MampfsearchDeleteJob.perform_later(id)
+    end
+
+    def purge_from_mampfsearch_if_video_detached
+      return unless @video_detached_to_purge
+
+      @video_detached_to_purge = nil
+      MampfsearchDeleteJob.perform_later(id)
+    end
 end
+

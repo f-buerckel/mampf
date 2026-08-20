@@ -9,6 +9,8 @@ class SearchClient
   QUERY_MAX_LENGTH = 500
   RATE_LIMIT = 30
   RATE_LIMIT_PERIOD = 1.minute
+  MAX_TRANSCRIPTION_ATTEMPTS = 3
+
 
   class MampfSearchError < StandardError; end
 
@@ -48,11 +50,25 @@ class SearchClient
     end
   end
 
+  def delete_media(media_rails_id)
+    perform_request(scope: "/lesson/media/#{media_rails_id}") do |client|
+      client.delete("/lesson/media/#{media_rails_id}")
+    end
+  end
+
+  def list_media_rails_ids
+    response = perform_request(scope: "/lesson/list") do |client|
+      client.post("/lesson/list")
+    end
+    response["media_rails_ids"] || []
+  end
+
   def health
     perform_request do |client|
       client.get("/ready")
     end
   end
+
 
   def search_media(query, whitelist_lecture_ids: nil, whitelist_lesson_ids: nil,
                    whitelist_media_ids: nil, exclude_media_ids: nil)
