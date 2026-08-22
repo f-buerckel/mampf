@@ -47,7 +47,7 @@ function teardownSearchFeature() {
   if (window.thymeAttributes && thymeAttributes.searchPopup) {
     thymeAttributes.searchPopup = null;
   }
-  document.querySelectorAll(".thyme-search-popup").forEach((element) => element.remove());
+  document.querySelectorAll(".thyme-search-popup").forEach(element => element.remove());
 }
 
 $(document).on("turbo:load", function () {
