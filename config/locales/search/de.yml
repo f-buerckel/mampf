@@ -14,6 +14,8 @@ de:
     mampfsearch_searching: 'Suche läuft …'
     results_heading: 'Ergebnisse für: %{query}'
     no_results: 'Keine Ergebnisse gefunden.'
+    search_content: 'Inhalte durchsuchen'
+    placeholder_lecture: 'Suche in der Veranstaltung...'
     relevance: 'Relevanz: %{score}%'
     play_from: 'Video abspielen ab %{time}'
     unknown_medium: 'Unbekanntes Medium'

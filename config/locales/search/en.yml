@@ -13,6 +13,8 @@ en:
     mampfsearch_searching: 'Searching …'
     results_heading: 'Results for: %{query}'
     no_results: 'No results found.'
+    search_content: 'Search content'
+    placeholder_lecture: 'Search in event...'
     relevance: 'Relevance: %{score}%'
     play_from: 'Play video from %{time}'
     unknown_medium: 'Unknown medium'
