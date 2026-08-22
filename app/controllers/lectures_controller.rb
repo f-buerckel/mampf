@@ -338,14 +338,18 @@ class LecturesController < ApplicationController
     end
 
     begin
+      visible_lecture_media = current_user.filter_visible_media(@lecture.media_with_inheritance_uncached)
+      visible_media_ids = visible_lecture_media.pluck(:id)
+      return render(json: { results: [] }) if visible_media_ids.empty?
+
       search_client = SearchClient.instance
       results = search_client.search_with_sentence_scoring(
         query,
-        whitelist_lecture_ids: [@lecture.id]
+        whitelist_lecture_ids: [@lecture.id],
+        whitelist_media_ids: visible_media_ids
       )
       media_ids = results.filter_map { |r| r["media_rails_id"] }.uniq
-      lecture_media = @lecture.media_with_inheritance_uncached.where(id: media_ids)
-      media_by_id = current_user.filter_visible_media(lecture_media).index_by(&:id)
+      media_by_id = visible_lecture_media.where(id: media_ids).index_by(&:id)
       results.select! { |r| media_by_id.key?(r["media_rails_id"]) }
 
       formatted = results.map do |result|
