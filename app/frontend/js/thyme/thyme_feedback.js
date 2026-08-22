@@ -11,7 +11,8 @@ import { VolumeBar } from "./components/volume_bar";
 import { Heatmap } from "./heatmap";
 import { addFeedbackShortcuts, addGeneralShortcuts, removeFeedbackShortcuts, removeGeneralShortcuts } from "./key_shortcuts";
 import { resizeThymeContainer } from "./resizer";
-import { playOnClick, setUpMaxTime, onVideoMetadataLoaded } from "./utility";
+import { playOnClick, setUpMaxTime } from "./utility";
+import { onVideoMetadataLoaded } from "./video_events";
 
 let activeShortcutHandlers = null;
 

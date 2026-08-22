@@ -22,7 +22,8 @@ import { DisplayManager } from "./display_manager";
 import { addGeneralShortcuts, addPlayerShortcuts, addSearchShortcuts, removeGeneralShortcuts, removePlayerShortcuts, removeSearchShortcuts } from "./key_shortcuts";
 import { MetadataManager } from "./metadata_manager";
 import { resizeThymeContainer } from "./resizer";
-import { onVideoMetadataLoaded, playOnClick, setUpMaxTime } from "./utility";
+import { playOnClick, setUpMaxTime } from "./utility";
+import { onVideoMetadataLoaded } from "./video_events";
 import { SearchPopup } from "./components/search_popup";
 
 // Track the currently active search feature instance so it can be torn down

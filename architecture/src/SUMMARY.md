@@ -21,18 +21,17 @@
 
 ## Müsli Bucket — Slice Guides
 - [Slice 1 — Assessment Core](slices/01-assessment-core.md)
-  - [Decisions](slices/01-assessment-core-decisions.md)
 - [Slice 2 — Achievements & Performance](slices/02-performance.md)
-  - [Decisions](slices/02-performance-decisions.md)
 - [Slice 3 — Exam Eligibility & Certification](slices/03-eligibility.md)
-  - [Decisions](slices/03-eligibility-decisions.md)
 - [Slice 4 — Exam Core & Registrations](slices/04-exam-core.md)
-  - [Decisions](slices/04-exam-core-decisions.md)
 - [Slice 5 — Exam Gradability](slices/05-exam-grading.md)
-  - [Decisions](slices/05-exam-grading-decisions.md)
 
 ## Extensions (Optional Features)
 - [Multiple Choice Exams](features/05c-multiple-choice-exams.md)
+
+## Point Entry for Exams
+- [Point Entry for Exams](features/13-point-entry-generalisation.md)
+  - [The Extraction, Step by Step](features/13a-point-entry-extraction-steps.md)
 
 ## Future Development
 - [Future Extensions](features/10-future-extensions.md)
@@ -42,6 +41,7 @@
 - [Student Dashboard](features/student_dashboard.md)
 
 ## Project Planning
+- [Roadmap](features/roadmap.md)
 - [Implementation Plan](features/plan.md)
 - [Implementation PR Roadmap](features/implementation-prs.md)
 - [Parallelization Strategy](features/parallelization.md)
