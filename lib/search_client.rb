@@ -10,7 +10,9 @@ class SearchClient
   RATE_LIMIT = 30
   RATE_LIMIT_PERIOD = 1.minute
   MAX_TRANSCRIPTION_ATTEMPTS = 3
-
+  STUCK_TRANSCRIPTION_TIMEOUT = 2.hours
+  MAX_IN_FLIGHT_TRANSCRIPTIONS = 15
+  SYNC_BATCH_SIZE = 10
 
   class MampfSearchError < StandardError; end
 
@@ -33,16 +35,16 @@ class SearchClient
     end
   end
 
-  def transcribe_lesson(media_rails_id:, lecture_rails_id:, course_rails_id:, video_url:,
-                        transcript_upload_url:, lesson_rails_id: nil)
+  def transcribe_lesson(media_rails_id:, course_rails_id:, video_url:,
+                        transcript_upload_url:, lecture_rails_id: nil, lesson_rails_id: nil)
     payload = {
       media_rails_id: media_rails_id,
-      lecture_rails_id: lecture_rails_id,
       course_rails_id: course_rails_id,
       video_url: video_url,
       transcript_upload_url: transcript_upload_url
     }
 
+    payload[:lecture_rails_id] = lecture_rails_id if lecture_rails_id.present?
     payload[:lesson_rails_id] = lesson_rails_id if lesson_rails_id.present?
 
     perform_request(scope: "/lesson/ingest") do |client|
@@ -68,7 +70,6 @@ class SearchClient
       client.get("/ready")
     end
   end
-
 
   def search_media(query, whitelist_lecture_ids: nil, whitelist_lesson_ids: nil,
                    whitelist_media_ids: nil, exclude_media_ids: nil)

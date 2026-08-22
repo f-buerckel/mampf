@@ -162,13 +162,36 @@ RSpec.describe(SearchClient) do
         expect(payload["scope"]).to eq("/lesson/ingest")
         fake_http
       end
-      expect(fake_http).to receive(:post).with("/lesson/ingest", params: anything)
-        .and_return(fake_response(200, '{"status":"queued"}'))
+      expect(fake_http).to receive(:post).with("/lesson/ingest", params: {
+        media_rails_id: 1,
+        course_rails_id: 3,
+        video_url: "http://video.url",
+        transcript_upload_url: "http://upload.url",
+        lecture_rails_id: 2
+      }).and_return(fake_response(200, '{"status":"queued"}'))
 
       allow(pool).to receive(:with) { |&block| block.call(fake_http) }
 
       client.transcribe_lesson(
         media_rails_id: 1, lecture_rails_id: 2, course_rails_id: 3,
+        video_url: "http://video.url", transcript_upload_url: "http://upload.url"
+      )
+    end
+
+    it "omits nil lecture_rails_id and lesson_rails_id from payload in transcribe_lesson" do
+      fake_http = double("http")
+      allow(fake_http).to receive(:headers).and_return(fake_http)
+      expect(fake_http).to receive(:post).with("/lesson/ingest", params: {
+        media_rails_id: 1,
+        course_rails_id: 3,
+        video_url: "http://video.url",
+        transcript_upload_url: "http://upload.url"
+      }).and_return(fake_response(200, '{"status":"queued"}'))
+
+      allow(pool).to receive(:with) { |&block| block.call(fake_http) }
+
+      client.transcribe_lesson(
+        media_rails_id: 1, course_rails_id: 3,
         video_url: "http://video.url", transcript_upload_url: "http://upload.url"
       )
     end
