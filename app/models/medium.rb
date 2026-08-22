@@ -128,20 +128,31 @@ class Medium < ApplicationRecord
   # if medium is associated to a nonpublished teachable, reset its published
   # property to nil
   before_save :reset_released_status
+  # sync mampfsearch database in case of video attachment change
+  before_save :handle_video_attachment_change
   # after creation, this creates an item of type 'self' that is just a wrapper
   # around this medium, so the medium itself can be referenced from other media
   # as an item as well
   after_create :create_self_item
   # if medium is a question or remark, delete all quiz vertices that refer to it
   before_destroy :delete_vertices
-  # handle video attachment detachment or replacement
-  before_save :handle_video_attachment_change
   # delete the medium's search index entries from MampfSearch on destroy or video detachment
   after_destroy_commit :purge_from_mampfsearch
   after_update_commit :purge_from_mampfsearch_if_video_detached
+  after_save_commit :trigger_transcription_if_video_attached_or_changed
   # some information about media are cached
   # to find out whether the cache is out of date, always touch'em after saving
   after_save :touch_teachable
+
+  # transcription status state machine
+  attribute :transcription_status, :integer, default: 0
+  enum :transcription_status, {
+    not_transcribed: 0,
+    queued: 1,
+    completed: 2,
+    failed_temporarily: 3,
+    failed_permanently: 4
+  }
 
   # keep track of copies (in particular for Questions, Remarks)
   acts_as_tree
@@ -161,6 +172,15 @@ class Medium < ApplicationRecord
   scope :expired, lambda {
                     where(sort: "RandomQuiz").where(created_at: ...1.day.ago)
                   }
+  scope :needs_transcription, lambda {
+                                where(transcription_status: [:not_transcribed, :failed_temporarily])
+                                  .where("transcription_attempts < ?", SearchClient::MAX_TRANSCRIPTION_ATTEMPTS)
+                                  .where.not(video_data: nil)
+                              }
+  scope :stuck_transcriptions, lambda {
+                                 where(transcription_status: :queued)
+                                   .where("transcription_requested_at < ?", SearchClient::STUCK_TRANSCRIPTION_TIMEOUT.ago)
+                               }
 
   include PgSearch::Model
 
@@ -429,6 +449,10 @@ class Medium < ApplicationRecord
     return if video.blank?
 
     TimeStamp.new(total_seconds: video_duration).hms_string
+  end
+
+  def transcribable?
+    video.present?
   end
 
   def geogebra_filename
@@ -1122,16 +1146,22 @@ class Medium < ApplicationRecord
     end
 
     def handle_video_attachment_change
-      if will_save_change_to_video_data?
-        if video.blank?
-          @video_detached_to_purge = true
-          self.transcript = nil
-          self.transcript_data = nil
-        elsif transcript.present? || transcript_data.present?
-          self.transcript = nil
-          self.transcript_data = nil
-        end
+      return unless will_save_change_to_video_data?
+
+      if video.blank?
+        @video_detached_to_purge = true
+        reset_transcription_state
+      elsif transcript.present?
+        reset_transcription_state
       end
+    end
+
+    def reset_transcription_state
+      self.transcript = nil
+      self.transcription_status = :not_transcribed unless transcription_status_changed?
+      self.transcription_attempts = 0 unless transcription_attempts_changed?
+      self.transcription_error = nil
+      self.transcription_requested_at = nil unless transcription_requested_at_changed?
     end
 
     def purge_from_mampfsearch
@@ -1144,5 +1174,11 @@ class Medium < ApplicationRecord
       @video_detached_to_purge = nil
       MampfsearchDeleteJob.perform_later(id)
     end
-end
 
+    def trigger_transcription_if_video_attached_or_changed
+      return unless saved_change_to_video_data? && transcribable?
+      return unless not_transcribed?
+
+      MampfsearchIngestJob.perform_later(id)
+    end
+end
