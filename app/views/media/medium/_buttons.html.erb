@@ -7,17 +7,17 @@
     </a>
   </div>
 
-  <% if can?(:transcribe, medium) && (medium.teachable_type == "Lesson" || medium.teachable_type == "Lecture") && medium.video.present? %>
+  <% if Rails.env.development? && can?(:transcribe, medium) && medium.transcribable? %>
     <div class="m-1">
       <% if MampfsearchHealth.ingest_available? %>
-        <%= link_to "Transcribe", transcribe_medium_path(medium),
+        <%= link_to t("video.transcribe"), transcribe_medium_path(medium),
                     class: "btn btn-outline-secondary", role: "button",
                     data: { turbo_method: :post } %>
       <% else %>
         <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip"
               title="<%= t('search.mampfsearch_unavailable') %>">
           <button type="button" class="btn btn-outline-secondary" disabled>
-            Transcribe
+            <%= t("video.transcribe") %>
           </button>
         </span>
       <% end %>

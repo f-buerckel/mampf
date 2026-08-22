@@ -2405,6 +2405,7 @@ de:
     no_video: 'Es gibt kein Video.'
     play: 'THymE-Player'
     download: 'Video herunterladen'
+    transcribe: 'Transkribieren'
     length: 'Länge'
     resolution: 'Auflösung'
     size: 'Größe'

@@ -2248,6 +2248,7 @@ en:
     no_video: 'There is no video.'
     play: 'THymE Player'
     download: 'download video'
+    transcribe: 'Transcribe'
     length: 'Length'
     resolution: 'Resolution'
     size: 'Size'
