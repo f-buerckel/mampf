@@ -1,6 +1,8 @@
 class SearchClient
   module SentenceHighlighter
     def self.segments(sentences)
+      return [] if sentences.blank?
+
       segments = []
       was_cut = false
 

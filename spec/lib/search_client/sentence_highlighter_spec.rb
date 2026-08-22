@@ -33,6 +33,19 @@ RSpec.describe(SearchClient::SentenceHighlighter) do
                                                         ])
     end
 
+    it "returns empty array when sentences is nil or empty" do
+      expect(described_class.segments(nil)).to eq([])
+      expect(described_class.segments([])).to eq([])
+    end
+
+    it "handles missing rerank_score by defaulting to 0 (cut marker)" do
+      sentences = [{ "sentence" => "Sentence without score" }]
+
+      expect(described_class.segments(sentences)).to eq([
+        { "text" => "[...]", "color" => nil }
+      ])
+    end
+
     it "keeps untrusted sentence text as raw data, not embedded in markup" do
       sentences = [{ "sentence" => "<script>alert(1)</script>", "rerank_score" => 0.9 }]
 
