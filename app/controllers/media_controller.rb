@@ -281,53 +281,15 @@ class MediaController < ApplicationController
   end
 
   def transcribe
-    unless ["Lesson", "Lecture"].include?(@medium.teachable_type) && @medium.video.present?
+    authorize! :transcribe, @medium
+    unless @medium.transcribable?
       redirect_back_or_to(root_path, alert: "Medium cannot be transcribed.")
       return
     end
 
-    search_client = SearchClient.instance
-
-    if @medium.teachable_type == "Lesson"
-      lesson = @medium.teachable
-      lecture = lesson.lecture
-
-    else
-      lesson = nil
-      lecture = @medium.teachable
-    end
-
-    course = lecture.course
-
-    video_token = TranscriptionToken.generate(
-      medium_id: @medium.id,
-      purpose: :video,
-      ttl: TranscriptionToken::VIDEO_TTL
-    )
-    transcript_token = TranscriptionToken.generate(
-      medium_id: @medium.id,
-      purpose: :transcript,
-      ttl: TranscriptionToken::TRANSCRIPT_TTL
-    )
-
-    begin
-      search_client.transcribe_lesson(
-        media_rails_id: @medium.id,
-        lesson_rails_id: lesson&.id,
-        lecture_rails_id: lecture.id,
-        course_rails_id: course.id,
-        video_url: transcription_url(
-          transcription_stream_video_medium_path(@medium), video_token
-        ),
-        transcript_upload_url: transcription_url(
-          add_transcript_path(@medium), transcript_token
-        )
-      )
-      head :accepted
-    rescue SearchClient::MampfSearchError => e
-      Rails.logger.error("Transcription failed: #{e.message}")
-      redirect_back_or_to(root_path, alert: I18n.t("search.mampfsearch_unavailable"))
-    end
+    @medium.update!(transcription_attempts: 0, transcription_error: nil)
+    MampfsearchIngestJob.perform_later(@medium.id)
+    head :accepted
   end
 
   def add_transcript
@@ -337,6 +299,9 @@ class MediaController < ApplicationController
     if params[:transcript].present?
       old_transcript = @medium.transcript
       @medium.transcript = params[:transcript]
+      @medium.transcription_status = :completed
+      @medium.transcription_attempts = 0
+      @medium.transcription_error = nil
       if @medium.save
         old_transcript&.delete
         head :ok
@@ -742,10 +707,6 @@ class MediaController < ApplicationController
   end
 
   private
-
-    def transcription_url(path, token)
-      "#{request.base_url}#{path}?token=#{ERB::Util.url_encode(token)}"
-    end
 
     def verify_search_api_token!
       auth_header = request.authorization

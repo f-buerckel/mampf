@@ -350,37 +350,22 @@ RSpec.describe("Media", type: :request) do
 
   describe "POST /media/:id/transcribe" do
     let(:medium) { create(:lecture_medium, :with_video) }
-    let(:search_client) { instance_double(SearchClient) }
 
-    before do
-      allow(SearchClient).to receive(:instance).and_return(search_client)
-      allow(search_client).to receive(:transcribe_lesson)
-    end
-
-    it "passes signed video and callback URLs to MampfSearch" do
-      expect(search_client).to receive(:transcribe_lesson) do |payload|
-        expect(payload[:video_url]).to include(
-          "/media/#{medium.id}/video/transcription_stream?token="
-        )
-        expect(payload[:transcript_upload_url]).to include(
-          "/api/webhooks/media/#{medium.id}/transcripts?token="
-        )
-      end
+    it "enqueues MampfsearchIngestJob and returns accepted" do
+      expect(MampfsearchIngestJob).to receive(:perform_later).with(medium.id)
 
       post transcribe_medium_path(medium)
 
       expect(response).to have_http_status(:accepted)
     end
 
-    it "redirects with an alert when MampfSearch is unavailable" do
-      allow(search_client)
-        .to receive(:transcribe_lesson)
-        .and_raise(SearchClient::ServiceUnavailableError, "down")
+    it "redirects when medium is not transcribable" do
+      videoless_medium = create(:lecture_medium, video: nil)
 
-      post transcribe_medium_path(medium)
+      post transcribe_medium_path(videoless_medium)
 
       expect(response).to have_http_status(:redirect)
-      expect(flash[:alert]).to eq(I18n.t("search.mampfsearch_unavailable"))
+      expect(flash[:alert]).to eq("Medium cannot be transcribed.")
     end
   end
 
