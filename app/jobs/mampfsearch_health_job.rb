@@ -1,7 +1,5 @@
-class MampfsearchHealthJob
-  include Sidekiq::Worker
-
-  sidekiq_options retry: false # job will be discarded if it fails
+class MampfsearchHealthJob < ApplicationJob
+  queue_as :default
 
   def perform
     MampfsearchHealth.new.call

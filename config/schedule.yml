@@ -39,3 +39,9 @@ mampfsearch_health_job:
   class: "MampfsearchHealthJob"
   queue: default
   description: "Polls MampfSearch readiness and caches search/ingest availability"
+
+mampfsearch_sync_job:
+  cron: "*/30 * * * *"
+  class: "MampfsearchSyncJob"
+  queue: default
+  description: "Syncs backlog media to MampfSearch and purges orphaned index entries"
